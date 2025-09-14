@@ -1,0 +1,41 @@
+# Dataset files (large)
+arc-gen-dataset/
+
+# Private directories
+feature-requests/
+conversations/
+code-packs/private/
+archive/
+
+# Private documentation
+CLAUDE.md
+project_log.md
+
+# Code packs (keeping public ones visible, only private subdirectory hidden)
+# code-packs/private/ is already listed above
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node modules (if any)
+node_modules/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
