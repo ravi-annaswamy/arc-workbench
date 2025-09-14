@@ -965,7 +965,7 @@
     return a[state.curId]; 
   }
   
-  async function updateView(){
+  async function updateView(skipAutoRun = false){
     const ex=getCurrent();
     if(!ex){
       renderGrid(els.inCanvas,[[0]]);
@@ -989,12 +989,12 @@
       console.warn('No output grid for',state.curSet,'#',state.curId);
       renderGrid(els.exCanvas,[[0]]);
     } else {
-      renderGrid(els.exCanvas,ex.output); 
-    } 
-    renderGrid(els.acCanvas,ex.input.map(r=>r.map(()=>0))); 
-    
-    // Auto-run test if we have code
-    if (editor && editor.getValue().trim()) {
+      renderGrid(els.exCanvas,ex.output);
+    }
+    renderGrid(els.acCanvas,ex.input.map(r=>r.map(()=>0)));
+
+    // Auto-run test if we have code (unless explicitly skipped)
+    if (!skipAutoRun && editor && editor.getValue().trim()) {
       await runSelected();
     }
   }
@@ -1083,6 +1083,7 @@
     els.failuresSection.style.display = 'none';
 
     const summary=[], fails=[];
+    let stopTesting = false;
 
     // Map set names to progress segments
     const segmentMap = {
@@ -1092,6 +1093,16 @@
     };
 
     for(const k of state.order){
+      if (stopTesting) {
+        // Mark remaining segments as pending
+        const segment = segmentMap[k];
+        if (segment && !segment.classList.contains('complete') && !segment.classList.contains('failed')) {
+          segment.classList.remove('running');
+          segment.classList.add('pending');
+        }
+        continue;
+      }
+
       const segment = segmentMap[k];
       if (segment) {
         segment.classList.remove('pending', 'complete', 'failed');
@@ -1101,19 +1112,26 @@
       const arr=state.sets[k];
       const res=[];
       let passed=0;
-      for(let i=0;i<arr.length;i++){
+      let i;
+      for(i=0;i<arr.length;i++){
         const r=await runOne(k,i);
         res.push(r);
-        if(r.pass) passed++;
-        else fails.push({k,i});
+        if(r.pass) {
+          passed++;
+        } else {
+          fails.push({k,i});
+          // Stop testing on first failure
+          stopTesting = true;
+          break;
+        }
       }
       state.results[k]=res;
-      summary.push({k,passed,total:arr.length});
+      summary.push({k,passed,total: stopTesting ? i+1 : arr.length});
 
       // Update segment status
       if (segment) {
         segment.classList.remove('running');
-        segment.classList.add(passed === arr.length ? 'complete' : 'failed');
+        segment.classList.add(passed === res.length ? 'complete' : 'failed');
       }
     }
 
@@ -1123,7 +1141,7 @@
     drawFailures(fails);
 
     if(fails.length){
-      els.testMessage.textContent = `${fails.length} test${fails.length > 1 ? 's' : ''} failed`;
+      els.testMessage.textContent = `Testing stopped at first failure: ${fails[0].k} #${fails[0].i + 1}`;
       els.testMessage.style.color = '#ef4444';
       els.failuresSection.style.display = 'block';
 
@@ -1132,8 +1150,9 @@
       state.curSet=f.k;
       els.idInput.value=f.i + 1; // Display 1-based index
       state.curId=f.i;
-      await updateView();
-      setStatus(`First failure: ${f.k} #${f.i}`);
+      await updateView(true); // Skip auto-run to preserve test results
+      // Auto-scroll to top to show the failed example
+      document.querySelector('.main-content').scrollTop = 0;
     }
     else {
       els.testMessage.textContent = 'All tests passed! 🎉';
@@ -1165,7 +1184,21 @@
     els.failBody.innerHTML='';
     for(const f of fails){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${f.k}</td><td>${f.i}</td><td class="fail">FAIL</td><td><button onclick="visualizeFailure('${f.k}',${f.i})" style="padding:4px 8px;font-size:11px">View</button></td>`;
+      tr.style.cursor = 'pointer';
+      tr.innerHTML=`<td>${f.k}</td><td>${f.i}</td><td class="fail">FAIL</td><td><button onclick="event.stopPropagation(); visualizeFailure('${f.k}',${f.i})" style="padding:4px 8px;font-size:11px">View</button></td>`;
+
+      // Make the entire row clickable to load that example
+      tr.onclick = async function() {
+        els.setSel.value = f.k;
+        state.curSet = f.k;
+        els.idInput.value = f.i + 1; // Display 1-based index
+        state.curId = f.i;
+        await updateView(true); // Skip auto-run to preserve test results
+
+        // Scroll to top to show the loaded example
+        document.querySelector('.main-content').scrollTop = 0;
+      };
+
       els.failBody.appendChild(tr);
     }
     // Don't show "All tests passed!" here - it's handled in the testMessage element
