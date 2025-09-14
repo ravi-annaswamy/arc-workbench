@@ -140,8 +140,9 @@
 <body>
   <div class="app">
     <!-- Header -->
-    <div class="header">
+    <div class="header" style="display:flex;justify-content:space-between;align-items:center">
       <h1>ARC-AGI Workbench <span>by Ravi Annaswamy</span></h1>
+      <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-right:20px" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
     </div>
 
     <!-- Main Content -->
@@ -150,7 +151,7 @@
       <div class="top-section">
         <!-- Task Title and Hash Display -->
         <div class="task-info-display">
-          <div class="main-title">ARC-GEN</div>
+          <div id="mainTitle" class="main-title">ARC-GEN</div>
           <div class="task-navigation">
             <span class="task-label">Task</span>
             <div class="task-input-group">
@@ -354,7 +355,8 @@
     prevTask:E('prevTask'),nextTask:E('nextTask'),prevEx:E('prevEx'),nextEx:E('nextEx'),
     taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
     bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
-    gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue')
+    gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
+    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle')
   };
   
   // ==== Monaco Editor Setup ====
@@ -491,7 +493,7 @@
   }
   
   // ==== State ====
-  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{}};
+  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0};
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
@@ -711,6 +713,11 @@
       
       state.currentCodePack = packName;
       // Don't show status for code pack loading
+
+      // Rebuild curriculum if in curriculum mode
+      if (state.curriculumMode) {
+        buildCurriculum();
+      }
       console.log(`Code pack ${packName} loaded with ${fileCount} files`);
       
       // Load code for current task if available (includes auto-run)
@@ -734,10 +741,10 @@
   
   async function loadCodeForCurrentTask() {
     if (!state.currentCodePack || !state.currentTaskId) return;
-    
+
     const paddedId = String(state.currentTaskId).padStart(3, '0');
     const fileName = `task${paddedId}.py`;
-    
+
     if (state.codePackFiles[fileName]) {
       if (editor) {
         editor.setValue(state.codePackFiles[fileName]);
@@ -747,6 +754,69 @@
       }
     } else {
       console.log(`No code found for ${fileName} in current pack`);
+    }
+  }
+
+  // Curriculum mode functions
+  function buildCurriculum() {
+    if (!state.codePackFiles || Object.keys(state.codePackFiles).length === 0) {
+      return false;
+    }
+
+    // Create array of tasks with their code lengths
+    const tasksWithLengths = [];
+    for (const [fileName, code] of Object.entries(state.codePackFiles)) {
+      const match = fileName.match(/task(\d{3})\.py/);
+      if (match) {
+        const taskId = parseInt(match[1]);
+        tasksWithLengths.push({
+          taskId: taskId,
+          length: code.length,
+          fileName: fileName
+        });
+      }
+    }
+
+    // Sort by code length (ascending - shortest first)
+    tasksWithLengths.sort((a, b) => a.length - b.length);
+
+    // Store the sorted order
+    state.curriculumOrder = tasksWithLengths.map(t => t.taskId);
+
+    return true;
+  }
+
+  function toggleCurriculumMode() {
+    if (!state.curriculumMode) {
+      // Entering curriculum mode
+      if (!buildCurriculum()) {
+        alert('Please load a code pack first to use the curriculum mode.');
+        return;
+      }
+
+      state.curriculumMode = true;
+
+      // Update UI
+      els.curriculumToggle.textContent = 'Choose Task Sequence';
+      els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#22c55e">Curriculum</span>';
+
+      // Find current task in curriculum order
+      const currentIndex = state.curriculumOrder.indexOf(state.currentTaskId);
+      state.curriculumIndex = currentIndex >= 0 ? currentIndex : 0;
+
+      // Load first task in curriculum
+      if (state.curriculumOrder.length > 0) {
+        loadTaskFromFile(state.curriculumOrder[0]);
+      }
+    } else {
+      // Exiting curriculum mode
+      state.curriculumMode = false;
+
+      // Update UI
+      els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
+      els.mainTitle.innerHTML = 'ARC-GEN';
+
+      // Stay on current task
     }
   }
   
@@ -781,6 +851,14 @@
       state.results = {};
       state.fileName = `task${paddedId}.json`;
       state.currentTaskId = taskId;
+
+      // Update curriculum index if in curriculum mode
+      if (state.curriculumMode && state.curriculumOrder.length > 0) {
+        const index = state.curriculumOrder.indexOf(taskId);
+        if (index >= 0) {
+          state.curriculumIndex = index;
+        }
+      }
 
       // Clear test results when switching tasks
       els.summaryChips.innerHTML = '';
@@ -900,13 +978,31 @@
   
   // Task navigation buttons
   els.prevTask.addEventListener('click', async () => {
-    const newId = Math.max(1, state.currentTaskId - 1);
-    await loadTaskFromFile(newId);
+    if (state.curriculumMode && state.curriculumOrder.length > 0) {
+      // Navigate in curriculum order
+      if (state.curriculumIndex > 0) {
+        state.curriculumIndex--;
+        await loadTaskFromFile(state.curriculumOrder[state.curriculumIndex]);
+      }
+    } else {
+      // Normal navigation
+      const newId = Math.max(1, state.currentTaskId - 1);
+      await loadTaskFromFile(newId);
+    }
   });
-  
+
   els.nextTask.addEventListener('click', async () => {
-    const newId = state.currentTaskId + 1;
-    await loadTaskFromFile(newId);
+    if (state.curriculumMode && state.curriculumOrder.length > 0) {
+      // Navigate in curriculum order
+      if (state.curriculumIndex < state.curriculumOrder.length - 1) {
+        state.curriculumIndex++;
+        await loadTaskFromFile(state.curriculumOrder[state.curriculumIndex]);
+      }
+    } else {
+      // Normal navigation
+      const newId = state.currentTaskId + 1;
+      await loadTaskFromFile(newId);
+    }
   });
   
   // Example navigation
@@ -1232,6 +1328,7 @@
   // Buttons
   els.runOne.addEventListener('click',runSelected);
   els.runAll.addEventListener('click',runAll);
+  els.curriculumToggle.addEventListener('click', toggleCurriculumMode);
   
   function updateCodeStats(){ 
     const src = editor ? editor.getValue() : currentCode;
