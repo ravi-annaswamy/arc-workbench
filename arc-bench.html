@@ -3,42 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ARC Development Environment by Ravi Annaswamy</title>
+  <title>ARC-AGI Workbench by Ravi Annaswamy</title>
   <style>
     :root{
       --bg:#0b0d10;--panel:#12151a;--muted:#9aa4b2;--fg:#e6edf3;--acc:#7c3aed;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b;
       --stroke:#243049;--btn:#0e1116;--tab-active:#1a1f2e;--tab-hover:#151922
     }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;overflow:hidden}
-    body{background:#0b0d10;color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+    html,body{height:100%;margin:0}
+    body{background:#0b0d10;color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;overflow:hidden;display:flex;flex-direction:column}
     
     /* Main container */
     .app{display:flex;flex-direction:column;height:100vh}
     .header{background:var(--panel);border-bottom:1px solid var(--stroke);padding:12px 20px}
     .header h1{margin:0;font-weight:800;letter-spacing:.2px;font-size:18px}
     .header h1 span{color:#00bfff}
-    
-    /* Tab navigation */
-    .tabs-nav{display:flex;gap:2px;background:var(--panel);border-bottom:2px solid var(--stroke);padding:0 20px}
-    .tab-btn{background:transparent;border:none;color:var(--muted);padding:12px 24px;cursor:pointer;font-size:14px;font-weight:500;transition:all .2s;border-radius:8px 8px 0 0;position:relative}
-    .tab-btn:hover{background:var(--tab-hover);color:var(--fg)}
-    .tab-btn.active{background:var(--tab-active);color:var(--fg);border-bottom:2px solid var(--acc);margin-bottom:-2px}
-    
-    /* Tab content */
-    .tabs-content{flex:1;overflow:hidden;position:relative}
-    .tab-pane{position:absolute;top:0;left:0;right:0;bottom:0;display:none;overflow:auto}
-    .tab-pane.active{display:flex;flex-direction:column}
-    
-    /* Develop tab layout */
-    .develop-layout{display:flex;height:100%;gap:0}
-    .code-editor-container{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto}
+
+    /* Main layout */
+    .main-content{flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0}
+    .top-section{background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;flex-shrink:0;flex-grow:0}
+    .bottom-section{display:flex;flex-shrink:0;height:500px;overflow:hidden}
+    .editor-panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto}
+    .test-panel-container{width:400px;background:var(--panel);border-left:1px solid var(--stroke);overflow-y:auto;display:flex;flex-direction:column}
     
     .nav-btn{background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;transition:all .2s}
     .nav-btn:hover{background:var(--tab-hover);border-color:var(--acc)}
     
     /* Grid container */
-    .grids-container{display:flex;gap:0;justify-content:center;align-items:flex-start}
+    .grids-container{display:flex;gap:0;justify-content:center;align-items:flex-start;padding-bottom:12px;margin:0 auto}
     .grids-left{display:flex;gap:12px;padding-right:40px;border-right:2px solid var(--stroke)}
     .grids-right{padding-left:40px}
     .grid-item{text-align:center}
@@ -51,17 +43,17 @@
     
     
     /* Task info display */
-    .task-info-display{padding:16px 14px;background:var(--panel);border-bottom:1px solid var(--stroke);text-align:center}
-    .main-title{font-size:32px;font-weight:800;color:#ffffff;margin-bottom:12px;letter-spacing:1px}
-    .task-navigation{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:12px}
-    .task-label{font-size:18px;font-weight:700;color:#ffffff;margin-right:8px}
-    .task-input-group{display:flex;gap:4px;align-items:center}
-    #taskInput{width:100px;text-align:center;background:var(--btn);color:#ffffff;font-size:24px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:6px 12px}
+    .task-info-display{padding:12px 20px;text-align:center}
+    .main-title{font-size:22px;font-weight:800;color:#ffffff;margin-bottom:8px;letter-spacing:1px}
+    .task-navigation{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:8px}
+    .task-label{font-size:16px;font-weight:600;color:#ffffff;margin-right:6px}
+    .task-input-group{display:flex;gap:2px;align-items:center}
+    #taskInput{width:70px;text-align:center;background:var(--btn);color:#ffffff;font-size:24px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:6px 8px}
     .task-title{font-size:28px;font-weight:600;color:#ffffff;letter-spacing:0.5px;margin-bottom:4px}
     .task-hash{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
     
     /* Example selector bar */
-    .example-selector-bar{padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;align-items:center;justify-content:center}
+    .example-selector-bar{}
     
     /* Code pack bar */
     .code-pack-bar{padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;align-items:center}
@@ -90,12 +82,10 @@
     /* Monaco container */
     #monacoEditor{flex:1;min-height:400px}
     
-    /* Test tab */
+    /* Test panel */
     .test-info{margin-top:10px;padding:12px;background:var(--btn);border-radius:8px;color:var(--muted);font-size:13px}
-    
-    /* Test tab (original styles) */
-    .test-content{padding:20px;max-width:1080px;margin:0 auto}
-    .section{background:var(--panel);border:1px solid var(--stroke);border-radius:14px;padding:14px;margin-bottom:12px}
+    .test-panel{padding:16px;flex:1;overflow-y:auto}
+    .section{background:var(--btn);border:1px solid var(--stroke);border-radius:10px;padding:12px;margin-bottom:10px}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     label small{color:var(--muted)}
     input[type=file],select,input[type=number],button{background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:10px;padding:9px 12px}
@@ -123,9 +113,11 @@
     /* Debug tab placeholder */
     .debug-placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:16px}
     
+    @media (max-width:1200px){
+      .bottom-section{flex-direction:column}
+      .test-panel-container{width:100%;border-left:none;border-top:1px solid var(--stroke);max-height:350px}
+    }
     @media (max-width:960px){
-      .grid3{grid-template-columns:1fr}
-      .develop-layout{flex-direction:column}
       .grids-container{flex-direction:column}
       .grids-left{border-right:none;padding-right:0;border-bottom:2px solid var(--stroke);padding-bottom:12px;margin-bottom:12px}
       .grids-right{padding-left:0}
@@ -137,93 +129,86 @@
   <div class="app">
     <!-- Header -->
     <div class="header">
-      <h1>ARC Development Environment <span>by Ravi Annaswamy</span></h1>
+      <h1>ARC-AGI Workbench <span>by Ravi Annaswamy</span></h1>
     </div>
-    
-    <!-- Tab Navigation -->
-    <div class="tabs-nav">
-      <button class="tab-btn active" data-tab="develop">Develop</button>
-      <button class="tab-btn" data-tab="test">Test</button>
-    </div>
-    
-    <!-- Tab Content -->
-    <div class="tabs-content">
-      <!-- Develop Tab -->
-      <div class="tab-pane active" data-pane="develop">
-        <div class="develop-layout">
-          <!-- Main Development Area -->
-          <div class="code-editor-container">
-            <!-- Task Title and Hash Display -->
-            <div class="task-info-display">
-              <div class="main-title">ARC-AGI</div>
-              <div class="task-navigation">
-                <span class="task-label">Task</span>
-                <div class="task-input-group">
-                  <button id="prevTask" class="nav-btn">◀</button>
-                  <input id="taskInput" type="text" placeholder="1" title="Type task number and press Enter" />
-                  <button id="nextTask" class="nav-btn">▶</button>
-                </div>
-              </div>
-              <div id="taskTitle" class="task-title">Loading...</div>
-              <div id="taskHash" class="task-hash"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Top Section: Task Browser -->
+      <div class="top-section">
+        <!-- Task Title and Hash Display -->
+        <div class="task-info-display">
+          <div class="main-title">ARC-AGI (arc-gen)</div>
+          <div class="task-navigation">
+            <span class="task-label">Task</span>
+            <div class="task-input-group">
+              <button id="prevTask" class="nav-btn">◀</button>
+              <input id="taskInput" type="text" placeholder="1" title="Type task number and press Enter" />
+              <button id="nextTask" class="nav-btn">▶</button>
             </div>
-            
-            <!-- Grid Visualizations -->
-            <div style="background:var(--panel);border-bottom:1px solid var(--stroke);padding:12px 14px;">
-              <div class="grid-size-control">
-                <span style="font-size:12px;color:var(--muted)">Grid Size:</span>
-                <input type="range" class="grid-size-slider" id="gridSizeSlider" min="100" max="300" value="150" />
-                <span id="gridSizeValue" style="font-size:12px;color:var(--muted)">150px</span>
+          </div>
+          <div style="margin-top:10px;text-align:center;">
+            <div id="taskTitle" class="task-title" style="font-size:18px;font-weight:700;color:#ffffff;margin-bottom:6px;">Loading...</div>
+            <div id="taskHash" class="task-hash" style="font-size:11px;color:var(--dim);font-family:ui-monospace,monospace;"></div>
+          </div>
+        </div>
+
+        <!-- Grid Visualizations -->
+        <div style="padding:12px 20px;flex-grow:1;flex-shrink:1;min-height:0;display:flex;flex-direction:column;">
+          <div class="grid-size-control">
+            <span style="font-size:12px;color:var(--muted)">Grid Size:</span>
+            <input type="range" class="grid-size-slider" id="gridSizeSlider" min="100" max="300" value="150" />
+            <span id="gridSizeValue" style="font-size:12px;color:var(--muted)">150px</span>
+          </div>
+          <div class="grids-container">
+            <div class="grids-left">
+              <div class="grid-item">
+                <div class="grid-label">Input</div>
+                <canvas id="inCanvas" width="200" height="200"></canvas>
               </div>
-              <div class="grids-container">
-                <div class="grids-left">
-                  <div class="grid-item">
-                    <div class="grid-label">Input</div>
-                    <canvas id="inCanvas" width="200" height="200"></canvas>
-                  </div>
-                  <div class="grid-item">
-                    <div class="grid-label">Expected</div>
-                    <canvas id="exCanvas" width="200" height="200"></canvas>
-                  </div>
-                </div>
-                <div class="grids-right">
-                  <div class="grid-item">
-                    <div class="grid-label">Actual</div>
-                    <canvas id="acCanvas" width="200" height="200"></canvas>
-                  </div>
-                </div>
+              <div class="grid-item">
+                <div class="grid-label">Expected</div>
+                <canvas id="exCanvas" width="200" height="200"></canvas>
               </div>
             </div>
-            
-            <!-- Example Selector -->
-            <div class="example-selector-bar">
-              <div style="display:flex;align-items:center;gap:16px;justify-content:center">
-                <label style="display:flex;align-items:center;gap:6px">
-                  <span style="font-size:12px;color:var(--muted)">Source:</span>
-                  <select id="sourceSel" style="width:100px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px">
-                    <option value="arc-gen">ARC-GEN</option>
-                  </select>
-                </label>
-                <label style="display:flex;align-items:center;gap:6px">
-                  <span style="font-size:12px;color:var(--muted)">Group:</span>
-                  <select id="setSel" style="width:100px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px">
-                    <option value="train">train</option>
-                    <option value="test">test</option>
-                    <option value="arc-gen">arc-gen</option>
-                  </select>
-                </label>
-                <label style="display:flex;align-items:center;gap:6px">
-                  <span style="font-size:12px;color:var(--muted)">Example:</span>
-                  <div style="display:flex;gap:4px;align-items:center">
-                    <button id="prevEx" class="nav-btn">◀</button>
-                    <input id="idInput" type="text" style="width:50px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px" placeholder="0" />
-                    <button id="nextEx" class="nav-btn">▶</button>
-                  </div>
-                </label>
+            <div class="grids-right">
+              <div class="grid-item">
+                <div class="grid-label">Actual</div>
+                <canvas id="acCanvas" width="200" height="200"></canvas>
               </div>
             </div>
-            
-            <!-- Code Pack Selector -->
+          </div>
+
+          <!-- Example Selector -->
+          <div class="example-selector-bar" style="background:var(--panel);border-top:1px solid var(--stroke);padding:10px 20px;margin-top:12px;border-radius:8px;">
+            <div style="display:flex;align-items:center;gap:20px;justify-content:center">
+              <label style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;color:var(--fg);font-weight:500">Group:</span>
+                <select id="setSel" style="width:100px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 10px;font-size:13px">
+                  <option value="train">train</option>
+                  <option value="test">test</option>
+                  <option value="arc-gen">arc-gen</option>
+                </select>
+              </label>
+              <div style="display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--stroke);border-right:1px solid var(--stroke)">
+                <span style="font-size:13px;color:var(--fg);font-weight:500">Example:</span>
+                <div style="display:flex;gap:2px;align-items:center">
+                  <button id="prevEx" class="nav-btn" style="padding:6px 8px">◀</button>
+                  <input id="idInput" type="number" min="0" max="999" style="width:45px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 4px;font-size:13px" value="0" />
+                  <button id="nextEx" class="nav-btn" style="padding:6px 8px">▶</button>
+                </div>
+              </div>
+              <div id="exampleInfo" style="font-size:12px;color:var(--success);font-weight:500;padding:4px 8px;background:var(--btn);border-radius:4px;display:none"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Editor and Testing -->
+      <div class="bottom-section">
+        <!-- Editor Panel -->
+        <div class="editor-panel">
+          <!-- Code Pack Selector -->
             <div class="code-pack-bar">
               <label>
                 <span style="font-size:12px;color:var(--muted)">Code Pack:</span>
@@ -258,65 +243,63 @@
             
             <!-- Monaco Editor -->
             <div id="monacoEditor"></div>
-          </div>
         </div>
-      </div>
-      
-      <!-- Test Tab -->
-      <div class="tab-pane" data-pane="test">
-        <div class="test-content">
+
+        <!-- Test Panel: Batch Testing -->
+        <div class="test-panel-container">
+        <div class="test-panel">
           <!-- Test Controls -->
           <div class="section">
             <div class="row" style="justify-content:space-between">
-              <div style="font-weight:600;font-size:16px">Batch Testing</div>
-              <button id="runAll" class="primary" disabled>RUN ALL TESTS</button>
+              <div style="font-weight:600;font-size:14px">Batch Testing</div>
+              <button id="runAll" class="primary" disabled>RUN ALL</button>
             </div>
-            <div class="test-info" id="testInfo">No JSON loaded. Load a file in the Develop tab first.</div>
+            <div class="test-info" id="testInfo">No JSON loaded.</div>
           </div>
-          
+
           <!-- Results Summary -->
           <div class="section" id="resSec">
-            <div style="font-weight:600;margin-bottom:10px">Test Results</div>
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px">Test Results</div>
             <div class="chips" id="summaryChips"></div>
-            
+
             <!-- Failures List -->
-            <div style="margin:16px 0 10px;font-weight:600">Failed Cases</div>
-            <div class="list">
+            <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Failed Cases</div>
+            <div class="list" style="max-height:150px">
               <table>
                 <thead>
                   <tr>
-                    <th style="width:90px">Set</th>
-                    <th style="width:60px">#</th>
+                    <th style="width:60px">Set</th>
+                    <th style="width:40px">#</th>
                     <th>Status</th>
-                    <th style="width:100px">Actions</th>
+                    <th style="width:60px">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="failBody"></tbody>
               </table>
             </div>
-            
+
             <!-- Failure Visualization -->
             <div id="failureViz" style="display:none">
-              <div style="margin:16px 0 10px;font-weight:600">Failure Details: <span id="failureTitle"></span></div>
-              <div class="grid3">
+              <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Failure Details: <span id="failureTitle"></span></div>
+              <div style="display:flex;flex-direction:column;gap:8px">
                 <div>
-                  <div style="margin:0 0 6px;font-size:12px;color:var(--muted)">Input</div>
-                  <canvas id="failInCanvas" width="250" height="250"></canvas>
+                  <div style="margin:0 0 4px;font-size:11px;color:var(--muted)">Input</div>
+                  <canvas id="failInCanvas" width="100" height="100" style="width:100px;height:100px"></canvas>
                 </div>
                 <div>
-                  <div style="margin:0 0 6px;font-size:12px;color:var(--muted)">Expected</div>
-                  <canvas id="failExCanvas" width="250" height="250"></canvas>
+                  <div style="margin:0 0 4px;font-size:11px;color:var(--muted)">Expected</div>
+                  <canvas id="failExCanvas" width="100" height="100" style="width:100px;height:100px"></canvas>
                 </div>
                 <div>
-                  <div style="margin:0 0 6px;font-size:12px;color:var(--muted)">Actual</div>
-                  <canvas id="failAcCanvas" width="250" height="250"></canvas>
+                  <div style="margin:0 0 4px;font-size:11px;color:var(--muted)">Actual</div>
+                  <canvas id="failAcCanvas" width="100" height="100" style="width:100px;height:100px"></canvas>
                 </div>
               </div>
             </div>
-            
+
             <!-- Execution Log -->
-            <div style="margin:16px 0 10px;font-weight:600">Execution Log</div>
-            <pre id="log" style="white-space:pre-wrap;margin:0;max-height:200px;overflow:auto;color:#b9c6e1;background:var(--btn);padding:10px;border-radius:8px"></pre>
+            <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Execution Log</div>
+            <pre id="log" style="white-space:pre-wrap;margin:0;max-height:150px;overflow:auto;color:#b9c6e1;background:var(--btn);padding:8px;border-radius:6px;font-size:11px"></pre>
           </div>
         </div>
       </div>
@@ -341,6 +324,7 @@
   const E = id=>document.getElementById(id);
   const els = {
     status:E('status'),setSel:E('setSel'),idInput:E('idInput'),
+    exampleInfo:E('exampleInfo'),
     runOne:E('runOne'),runAll:E('runAll'),
     inCanvas:E('inCanvas'),exCanvas:E('exCanvas'),acCanvas:E('acCanvas'),
     bytes:E('bytes'),resetBtn:E('resetBtn'),
@@ -398,7 +382,7 @@
       value: DEFAULT_CODE,
       language: 'python',
       theme: 'vs-dark',
-      minimap: { enabled: true },
+      minimap: { enabled: false },
       fontSize: 13,
       fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace',
       automaticLayout: true,
@@ -427,25 +411,7 @@
     updateCodeStats();
   });
   
-  // ==== Tab Navigation ====
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabName = btn.dataset.tab;
-      
-      // Update active button
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      // Update active pane
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-      document.querySelector(`.tab-pane[data-pane="${tabName}"]`).classList.add('active');
-      
-      // Trigger Monaco layout update when switching to Develop tab
-      if (tabName === 'develop' && editor) {
-        setTimeout(() => editor.layout(), 0);
-      }
-    });
-  });
+  // Removed tab navigation - no longer needed
   
   // ==== Palette ====
   const PAL = {0:'#000000',1:'#2d5be3',2:'#e53935',3:'#22c55e',4:'#facc15',5:'#9e9e9e',6:'#ec4899',7:'#fb8c00',8:'#06b6d4',9:'#8b5e3c'};
@@ -820,10 +786,11 @@
       });
       
       els.setSel.value = state.curSet;
-      els.idInput.value = 0;
+      els.idInput.value = 1; // Display 1-based index
       const arr0 = state.sets[state.curSet] || [];
       els.idInput.max = Math.max(0, arr0.length - 1);
-      
+      // Example count shown in exampleInfo display
+
       clearLog();
       log(`Loaded task ${taskId} (${state.fileName})`);
       await updateView();
@@ -916,7 +883,7 @@
   els.prevEx.addEventListener('click', async () => {
     const newId = Math.max(0, state.curId - 1);
     state.curId = newId;
-    els.idInput.value = newId;
+    els.idInput.value = newId + 1; // Display 1-based index
     await updateView();
   });
   
@@ -924,15 +891,16 @@
     const arr = state.sets[state.curSet] || [];
     const newId = Math.min(arr.length - 1, state.curId + 1);
     state.curId = newId;
-    els.idInput.value = newId;
+    els.idInput.value = newId + 1; // Display 1-based index
     await updateView();
   });
   
   // Example ID input change - supports typing and Enter
   els.idInput.addEventListener('keypress', async (e) => {
     if (e.key === 'Enter') {
-      const n = parseInt(els.idInput.value, 10);
-      if (!isNaN(n) && n >= 0) {
+      const n = parseInt(els.idInput.value, 10) - 1; // Convert to 0-based
+      const arr = state.sets[state.curSet] || [];
+      if (!isNaN(n) && n >= 0 && n < arr.length) {
         state.curId = n;
         await updateView();
       }
@@ -940,10 +908,14 @@
   });
   
   els.idInput.addEventListener('change', async () => {
-    const n = parseInt(els.idInput.value, 10);
-    if (!isNaN(n) && n >= 0) {
+    const n = parseInt(els.idInput.value, 10) - 1; // Convert to 0-based
+    const arr = state.sets[state.curSet] || [];
+    if (!isNaN(n) && n >= 0 && n < arr.length) {
       state.curId = n;
       await updateView();
+    } else {
+      // Reset to current value if invalid
+      els.idInput.value = state.curId + 1;
     }
   });
   
@@ -953,7 +925,8 @@
     const arr = state.sets[state.curSet] || [];
     state.curId = Math.min(state.curId, Math.max(0, arr.length - 1));
     els.idInput.max = Math.max(0, arr.length - 1);
-    els.idInput.value = state.curId;
+    els.idInput.value = state.curId + 1; // Display 1-based index
+    // Example count shown in exampleInfo display
     await updateView();
   });
   
@@ -962,21 +935,31 @@
     return a[state.curId]; 
   }
   
-  async function updateView(){ 
-    const ex=getCurrent(); 
-    if(!ex){ 
-      renderGrid(els.inCanvas,[[0]]); 
-      renderGrid(els.exCanvas,[[0]]); 
-      renderGrid(els.acCanvas,[[0]]); 
+  async function updateView(){
+    const ex=getCurrent();
+    if(!ex){
+      renderGrid(els.inCanvas,[[0]]);
+      renderGrid(els.exCanvas,[[0]]);
+      renderGrid(els.acCanvas,[[0]]);
       els.testResult.textContent = '';
       els.testResult.className = 'test-result';
-      return; 
-    } 
-    renderGrid(els.inCanvas,ex.input); 
-    if(!ex.output){ 
-      console.warn('No output grid for',state.curSet,'#',state.curId); 
-      renderGrid(els.exCanvas,[[0]]); 
-    } else { 
+      if (els.exampleInfo) {
+        els.exampleInfo.style.display = 'none';
+      }
+      return;
+    }
+
+    // Update example info display
+    if (els.exampleInfo) {
+      els.exampleInfo.textContent = `${state.curSet.toUpperCase()} ${state.curId + 1}/${(state.sets[state.curSet] || []).length}`;
+      els.exampleInfo.style.display = 'block';
+    }
+
+    renderGrid(els.inCanvas,ex.input);
+    if(!ex.output){
+      console.warn('No output grid for',state.curSet,'#',state.curId);
+      renderGrid(els.exCanvas,[[0]]);
+    } else {
       renderGrid(els.exCanvas,ex.output); 
     } 
     renderGrid(els.acCanvas,ex.input.map(r=>r.map(()=>0))); 
@@ -1069,9 +1052,9 @@
     drawFailures(fails);
     if(fails.length){ 
       const f=fails[0]; 
-      els.setSel.value=f.k; 
-      state.curSet=f.k; 
-      els.idInput.value=f.i; 
+      els.setSel.value=f.k;
+      state.curSet=f.k;
+      els.idInput.value=f.i + 1; // Display 1-based index
       state.curId=f.i; 
       await updateView(); 
       setStatus(`First failure: ${f.k} #${f.i}`); 
@@ -1144,7 +1127,7 @@
     // Also switch to develop tab and load this example
     els.setSel.value = setName;
     state.curSet = setName;
-    els.idInput.value = idx;
+    els.idInput.value = idx + 1; // Display 1-based index
     state.curId = idx;
     await updateView();
   }
