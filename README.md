@@ -100,7 +100,6 @@ Click "Try ARC-AGI Curriculum" to:
 The tool runs locally on your machine and allows you to browse your submission file if you want. **If you place your submission files inside the codepacks folder, you need to make sure not to add them to any public repo.** The `code-packs/private/` folder is already gitignored for your protection, but always double-check before committing.
 
 ### Available Packs
-- `jazivxt-v101.zip`: Competition solutions
 - `tony-maksym-20250913.zip`: Recent submission archive
 
 ### Loading Code Packs
