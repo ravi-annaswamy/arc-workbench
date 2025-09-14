@@ -24,7 +24,7 @@
     .top-section{background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;flex-shrink:0;flex-grow:0}
     .bottom-section{display:flex;flex-shrink:0;height:500px;overflow:hidden}
     .editor-panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto}
-    .test-panel-container{width:400px;background:var(--panel);border-left:1px solid var(--stroke);overflow-y:auto;display:flex;flex-direction:column}
+    .test-panel-container{width:350px;background:var(--panel);border-left:1px solid var(--stroke);overflow-y:auto;display:flex;flex-direction:column}
     
     .nav-btn{background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;transition:all .2s}
     .nav-btn:hover{background:var(--tab-hover);border-color:var(--acc)}
@@ -109,13 +109,25 @@
     tr:hover{background:#101626;cursor:pointer}
     .pass{color:var(--ok)} .fail{color:var(--bad)}
     .status{color:var(--muted);font-size:12px;min-height:18px;margin-bottom:12px}
+
+    /* Progress bar styles */
+    .progress-bar{display:none;margin:12px 0;height:24px;background:var(--btn);border:1px solid var(--stroke);border-radius:4px;overflow:hidden}
+    .progress-bar.active{display:flex}
+    .progress-segment{height:100%;transition:background-color 0.3s;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);position:relative}
+    .progress-train{flex:1;border-right:1px solid var(--stroke)}
+    .progress-test{flex:1;border-right:1px solid var(--stroke)}
+    .progress-arcgen{flex:3}
+    .progress-segment.pending{background:var(--btn);color:var(--muted)}
+    .progress-segment.running{background:#2563eb;animation:pulse 1s infinite;color:white}
+    .progress-segment.complete{background:#22c55e;color:white}
+    .progress-segment.failed{background:#ef4444;color:white}
+    @keyframes pulse{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
     
     /* Debug tab placeholder */
     .debug-placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:16px}
     
     @media (max-width:1200px){
-      .bottom-section{flex-direction:column}
-      .test-panel-container{width:100%;border-left:none;border-top:1px solid var(--stroke);max-height:350px}
+      .test-panel-container{width:300px}
     }
     @media (max-width:960px){
       .grids-container{flex-direction:column}
@@ -138,7 +150,7 @@
       <div class="top-section">
         <!-- Task Title and Hash Display -->
         <div class="task-info-display">
-          <div class="main-title">ARC-AGI (arc-gen)</div>
+          <div class="main-title">ARC-GEN</div>
           <div class="task-navigation">
             <span class="task-label">Task</span>
             <div class="task-input-group">
@@ -173,8 +185,9 @@
             </div>
             <div class="grids-right">
               <div class="grid-item">
-                <div class="grid-label">Actual</div>
+                <div class="grid-label">Predicted</div>
                 <canvas id="acCanvas" width="200" height="200"></canvas>
+                <div id="exampleResult" style="margin-top:6px;font-size:14px;font-weight:700;height:20px"></div>
               </div>
             </div>
           </div>
@@ -231,51 +244,56 @@
                 </div>
                 <div id="byteDelta" class="byte-delta"></div>
               </div>
-              <button id="runOne" class="play-button" title="Run test">▶</button>
-              <div id="testResult" class="test-result"></div>
+              <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
               <div class="editor-info">
                 <span id="status" class="status-inline"></span>
               </div>
-              <div class="editor-actions">
-                <button id="resetBtn">Reset Default</button>
-              </div>
             </div>
-            
+
             <!-- Monaco Editor -->
-            <div id="monacoEditor"></div>
+            <div style="margin-top:20px">
+              <div id="monacoEditor"></div>
+            </div>
         </div>
 
-        <!-- Test Panel: Batch Testing -->
+        <!-- Test Panel -->
         <div class="test-panel-container">
         <div class="test-panel">
           <!-- Test Controls -->
           <div class="section">
-            <div class="row" style="justify-content:space-between">
-              <div style="font-weight:600;font-size:14px">Batch Testing</div>
-              <button id="runAll" class="primary" disabled>RUN ALL</button>
+            <div class="row" style="justify-content:center">
+              <button id="runAll" class="primary" disabled style="font-weight:700">Test full set</button>
             </div>
-            <div class="test-info" id="testInfo">No JSON loaded.</div>
+            <!-- Progress Bar -->
+            <div id="progressBar" class="progress-bar">
+              <div class="progress-segment progress-train pending" title="train">train</div>
+              <div class="progress-segment progress-test pending" title="test">test</div>
+              <div class="progress-segment progress-arcgen pending" title="arc-gen">arc-gen</div>
+            </div>
           </div>
 
           <!-- Results Summary -->
-          <div class="section" id="resSec">
+          <div class="section" id="resSec" style="display:none">
             <div style="font-weight:600;margin-bottom:8px;font-size:13px">Test Results</div>
             <div class="chips" id="summaryChips"></div>
+            <div id="testMessage" style="margin-top:10px;font-size:14px;font-weight:600;text-align:center"></div>
 
             <!-- Failures List -->
-            <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Failed Cases</div>
-            <div class="list" style="max-height:150px">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:60px">Set</th>
-                    <th style="width:40px">#</th>
-                    <th>Status</th>
-                    <th style="width:60px">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="failBody"></tbody>
-              </table>
+            <div id="failuresSection" style="display:none">
+              <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Failed Cases</div>
+              <div class="list" style="max-height:150px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:60px">Set</th>
+                      <th style="width:40px">#</th>
+                      <th>Status</th>
+                      <th style="width:60px">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="failBody"></tbody>
+                </table>
+              </div>
             </div>
 
             <!-- Failure Visualization -->
@@ -327,14 +345,15 @@
     exampleInfo:E('exampleInfo'),
     runOne:E('runOne'),runAll:E('runAll'),
     inCanvas:E('inCanvas'),exCanvas:E('exCanvas'),acCanvas:E('acCanvas'),
-    bytes:E('bytes'),resetBtn:E('resetBtn'),
+    bytes:E('bytes'),
     summaryChips:E('summaryChips'),failBody:E('failBody'),log:E('log'),
-    testInfo:E('testInfo'),failureViz:E('failureViz'),failureTitle:E('failureTitle'),
+    progressBar:E('progressBar'),resSec:E('resSec'),testMessage:E('testMessage'),
+    failuresSection:E('failuresSection'),failureViz:E('failureViz'),failureTitle:E('failureTitle'),
     failInCanvas:E('failInCanvas'),failExCanvas:E('failExCanvas'),failAcCanvas:E('failAcCanvas'),
     taskInput:E('taskInput'),codePack:E('codePack'),
     prevTask:E('prevTask'),nextTask:E('nextTask'),prevEx:E('prevEx'),nextEx:E('nextEx'),
-    taskTitle:E('taskTitle'),taskHash:E('taskHash'),
-    bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),testResult:E('testResult'),
+    taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
+    bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
     gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue')
   };
   
@@ -383,7 +402,7 @@
       language: 'python',
       theme: 'vs-dark',
       minimap: { enabled: false },
-      fontSize: 13,
+      fontSize: 15,
       fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace',
       automaticLayout: true,
       scrollBeyondLastLine: false,
@@ -661,7 +680,6 @@
     }
     
     try {
-      setStatus(`Loading code pack: ${packName}...`);
       const url = `code-packs/${packName}.zip`;
       console.log('Fetching code pack from:', url);
       
@@ -692,7 +710,7 @@
       }
       
       state.currentCodePack = packName;
-      setStatus(`Loaded code pack: ${packName} (${fileCount} Python files)`);
+      // Don't show status for code pack loading
       console.log(`Code pack ${packName} loaded with ${fileCount} files`);
       
       // Load code for current task if available (includes auto-run)
@@ -723,7 +741,7 @@
     if (state.codePackFiles[fileName]) {
       if (editor) {
         editor.setValue(state.codePackFiles[fileName]);
-        setStatus(`Loaded code from ${state.currentCodePack}/${fileName}`);
+        // Don't show status for code loading
         // Auto-run the test when code is loaded
         await updateView();
       }
@@ -763,7 +781,19 @@
       state.results = {};
       state.fileName = `task${paddedId}.json`;
       state.currentTaskId = taskId;
-      
+
+      // Clear test results when switching tasks
+      els.summaryChips.innerHTML = '';
+      els.failBody.innerHTML = '';
+      els.exampleResult.textContent = '';
+      els.progressBar.classList.remove('active');
+      els.progressBar.querySelectorAll('.progress-segment').forEach(seg => {
+        seg.className = seg.className.replace(/running|complete|failed/g, 'pending').trim();
+      });
+      els.resSec.style.display = 'none';
+      els.failuresSection.style.display = 'none';
+      els.testMessage.textContent = '';
+
       // Update UI - show just the number for cleaner display
       els.taskInput.value = taskId;
       els.setSel.disabled = false;
@@ -795,7 +825,7 @@
       log(`Loaded task ${taskId} (${state.fileName})`);
       await updateView();
       drawSummary();
-      drawFailures([]);
+      // drawFailures([]); // Don't pre-fill the failure list
       updateTestInfo();
       
       // Load code for this task if code pack is selected
@@ -941,8 +971,7 @@
       renderGrid(els.inCanvas,[[0]]);
       renderGrid(els.exCanvas,[[0]]);
       renderGrid(els.acCanvas,[[0]]);
-      els.testResult.textContent = '';
-      els.testResult.className = 'test-result';
+      els.exampleResult.textContent = '';
       if (els.exampleInfo) {
         els.exampleInfo.style.display = 'none';
       }
@@ -1009,16 +1038,29 @@
     return {pass,actual:out};
   }
   
-  async function runSelected(){ 
-    const r=await runOne(state.curSet,state.curId); 
-    // Update test result display
+  async function runSelected(){
+    // Clear Full test results when running single example
+    els.summaryChips.innerHTML = '';
+    els.failBody.innerHTML = '';
+    els.progressBar.classList.remove('active');
+    els.progressBar.querySelectorAll('.progress-segment').forEach(seg => {
+      seg.className = seg.className.replace(/running|complete|failed/g, 'pending').trim();
+    });
+    els.resSec.style.display = 'none';
+    els.failuresSection.style.display = 'none';
+    els.testMessage.textContent = '';
+
+    const r=await runOne(state.curSet,state.curId);
+
+    // Update example result display next to Predicted grid
     if (r.pass) {
-      els.testResult.textContent = 'PASS';
-      els.testResult.className = 'test-result pass';
+      els.exampleResult.textContent = 'PASS';
+      els.exampleResult.style.color = '#22c55e';
     } else {
-      els.testResult.textContent = 'FAIL';
-      els.testResult.className = 'test-result fail';
+      els.exampleResult.textContent = 'FAIL';
+      els.exampleResult.style.color = '#ef4444';
     }
+
     // Always update the actual grid display with the result
     if (r.actual) {
       renderGrid(els.acCanvas, r.actual);
@@ -1032,34 +1074,73 @@
   }
   
   async function runAll(){
-    await ensurePy(); 
-    clearLog(); 
+    await ensurePy();
+    clearLog();
+
+    // Show progress bar
+    els.progressBar.classList.add('active');
+    els.resSec.style.display = 'none';
+    els.failuresSection.style.display = 'none';
+
     const summary=[], fails=[];
-    for(const k of state.order){ 
-      const arr=state.sets[k]; 
-      const res=[]; 
-      let passed=0; 
-      for(let i=0;i<arr.length;i++){ 
-        const r=await runOne(k,i); 
-        res.push(r); 
-        if(r.pass) passed++; 
-        else fails.push({k,i}); 
-      } 
-      state.results[k]=res; 
-      summary.push({k,passed,total:arr.length}); 
+
+    // Map set names to progress segments
+    const segmentMap = {
+      'train': els.progressBar.querySelector('.progress-train'),
+      'test': els.progressBar.querySelector('.progress-test'),
+      'arc-gen': els.progressBar.querySelector('.progress-arcgen')
+    };
+
+    for(const k of state.order){
+      const segment = segmentMap[k];
+      if (segment) {
+        segment.classList.remove('pending', 'complete', 'failed');
+        segment.classList.add('running');
+      }
+
+      const arr=state.sets[k];
+      const res=[];
+      let passed=0;
+      for(let i=0;i<arr.length;i++){
+        const r=await runOne(k,i);
+        res.push(r);
+        if(r.pass) passed++;
+        else fails.push({k,i});
+      }
+      state.results[k]=res;
+      summary.push({k,passed,total:arr.length});
+
+      // Update segment status
+      if (segment) {
+        segment.classList.remove('running');
+        segment.classList.add(passed === arr.length ? 'complete' : 'failed');
+      }
     }
-    drawSummary(summary); 
+
+    // Show results section
+    els.resSec.style.display = 'block';
+    drawSummary(summary);
     drawFailures(fails);
-    if(fails.length){ 
-      const f=fails[0]; 
+
+    if(fails.length){
+      els.testMessage.textContent = `${fails.length} test${fails.length > 1 ? 's' : ''} failed`;
+      els.testMessage.style.color = '#ef4444';
+      els.failuresSection.style.display = 'block';
+
+      const f=fails[0];
       els.setSel.value=f.k;
       state.curSet=f.k;
       els.idInput.value=f.i + 1; // Display 1-based index
-      state.curId=f.i; 
-      await updateView(); 
-      setStatus(`First failure: ${f.k} #${f.i}`); 
+      state.curId=f.i;
+      await updateView();
+      setStatus(`First failure: ${f.k} #${f.i}`);
     }
-    else setStatus('All cases PASS across available sets. 🎉');
+    else {
+      els.testMessage.textContent = 'All tests passed! 🎉';
+      els.testMessage.style.color = '#22c55e';
+      els.failuresSection.style.display = 'none';
+      // Don't show status - already shown in test message
+    }
   }
   
   // Results rendering
@@ -1080,36 +1161,19 @@
     }
   }
   
-  function drawFailures(fails){ 
-    els.failBody.innerHTML=''; 
-    for(const f of fails){ 
-      const tr=document.createElement('tr'); 
-      tr.innerHTML=`<td>${f.k}</td><td>${f.i}</td><td class="fail">FAIL</td><td><button onclick="visualizeFailure('${f.k}',${f.i})" style="padding:4px 8px;font-size:11px">View</button></td>`; 
-      els.failBody.appendChild(tr); 
-    } 
-    if(!fails.length){ 
-      const tr=document.createElement('tr'); 
-      tr.innerHTML='<td colspan="4" class="pass">All tests passed!</td>'; 
-      els.failBody.appendChild(tr); 
-    } 
+  function drawFailures(fails){
+    els.failBody.innerHTML='';
+    for(const f of fails){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${f.k}</td><td>${f.i}</td><td class="fail">FAIL</td><td><button onclick="visualizeFailure('${f.k}',${f.i})" style="padding:4px 8px;font-size:11px">View</button></td>`;
+      els.failBody.appendChild(tr);
+    }
+    // Don't show "All tests passed!" here - it's handled in the testMessage element
   }
   
-  // New function to update test info
+  // New function to update test info - removed file display
   function updateTestInfo() {
-    if (!state.sets || !Object.keys(state.sets).length) {
-      els.testInfo.textContent = 'No JSON loaded. Load a file in the Develop tab first.';
-      return;
-    }
-    
-    let totalTests = 0;
-    const counts = [];
-    for (const k of state.order) {
-      const count = state.sets[k].length;
-      totalTests += count;
-      counts.push(`${k}: ${count}`);
-    }
-    
-    els.testInfo.textContent = `File: ${state.fileName || 'Unknown'} | Total tests: ${totalTests} (${counts.join(', ')})`;
+    // Function removed - no longer showing file info
   }
   
   // New function to visualize failures
@@ -1133,16 +1197,8 @@
   }
   
   // Buttons
-  els.runOne.addEventListener('click',runSelected); 
+  els.runOne.addEventListener('click',runSelected);
   els.runAll.addEventListener('click',runAll);
-  els.resetBtn.addEventListener('click',()=>{ 
-    if (editor) {
-      editor.setValue(DEFAULT_CODE);
-    }
-    currentCode = DEFAULT_CODE;
-    updateCodeStats(); 
-    setStatus('Reset to default solver.'); 
-  });
   
   function updateCodeStats(){ 
     const src = editor ? editor.getValue() : currentCode;
