@@ -6,6 +6,11 @@ A simple, yet useful browser-based development environment for solving and testi
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+## 📸 Screenshot
+
+![ARC-AGI Workbench Interface](screenshot.png)
+*ARC-AGI Workbench in Curriculum Mode showing the clean interface with grid visualizations, Monaco editor, and test results*
+
 ## 🚀 Features
 
 ### Core Functionality
@@ -90,6 +95,9 @@ Click "Try ARC-AGI Curriculum" to:
 - 9: Brown
 
 ## 📦 Code Packs
+
+### ⚠️ Word of Caution
+The tool runs locally on your machine and allows you to browse your submission file if you want. **If you place your submission files inside the codepacks folder, you need to make sure not to add them to any public repo.** The `code-packs/private/` folder is already gitignored for your protection, but always double-check before committing.
 
 ### Available Packs
 - `jazivxt-v101.zip`: Competition solutions
