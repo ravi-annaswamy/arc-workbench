@@ -40,8 +40,15 @@ python -m http.server 8000
 
 3. **Open in browser**
 ```
-http://localhost:8000/arc-workbench.html
+http://localhost:8000/
 ```
+
+## 🌐 Static Hosting (GitHub Pages)
+
+1. Push this repository to your GitHub account if you haven't already.
+2. Open the repo settings ➜ *Pages* and set **Source** to `Deploy from a branch`, then pick `main` and `/ (root)`.
+3. Save the settings—GitHub Pages will publish the static site at `https://<username>.github.io/<repo>/` in a minute or two.
+4. Visit the published URL; the workbench and datasets load entirely from the static files in this repo.
 
 ## 📚 User Guide
 
@@ -120,7 +127,7 @@ my-solutions.zip
 
 ```
 arc-workbench/
-├── arc-workbench.html      # Main application
+├── index.html              # Main application
 ├── arc-gen-dataset/        # Task JSON files (400+ tasks)
 │   ├── task001.json
 │   ├── task002.json

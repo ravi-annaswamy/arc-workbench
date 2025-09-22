@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARC-AGI Workbench by Ravi Annaswamy</title>
+  <style>
+    :root{
+      --bg:#0b0d10;--panel:#12151a;--muted:#9aa4b2;--fg:#e6edf3;--acc:#7c3aed;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b;
+      --stroke:#243049;--btn:#0e1116;--tab-active:#1a1f2e;--tab-hover:#151922
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{background:#0b0d10;color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;overflow:hidden;display:flex;flex-direction:column}
+    
+    /* Main container */
+    .app{display:flex;flex-direction:column;height:100vh}
+    .header{background:var(--panel);border-bottom:1px solid var(--stroke);padding:12px 20px}
+    .header h1{margin:0;font-weight:800;letter-spacing:.2px;font-size:18px}
+    .header h1 span{color:#00bfff}
+
+    /* Main layout */
+    .main-content{flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0}
+    .top-section{background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;flex-shrink:0;flex-grow:0}
+    .bottom-section{display:flex;flex-shrink:0;height:500px;overflow:hidden}
+    .editor-panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto}
+    .test-panel-container{width:350px;background:var(--panel);border-left:1px solid var(--stroke);overflow-y:auto;display:flex;flex-direction:column}
+    
+    .nav-btn{background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;transition:all .2s}
+    .nav-btn:hover{background:var(--tab-hover);border-color:var(--acc)}
+    
+    /* Grid container */
+    .grids-container{display:flex;gap:0;justify-content:center;align-items:flex-start;padding-bottom:12px;margin:0 auto}
+    .grids-left{display:flex;gap:12px;padding-right:40px;border-right:2px solid var(--stroke)}
+    .grids-right{padding-left:40px}
+    .grid-item{text-align:center}
+    .grid-label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .grids-container canvas{width:auto;height:150px;background:#1a1a1a;border:1px solid var(--stroke);border-radius:8px;image-rendering:pixelated;image-rendering:crisp-edges}
+    
+    /* Grid size slider */
+    .grid-size-control{display:flex;align-items:center;gap:10px;margin-bottom:8px;justify-content:center}
+    .grid-size-slider{width:150px}
+    
+    
+    /* Task info display */
+    .task-info-display{padding:12px 20px;text-align:center}
+    .main-title{font-size:22px;font-weight:800;color:#ffffff;margin-bottom:8px;letter-spacing:1px}
+    .task-navigation{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:8px}
+    .task-label{font-size:16px;font-weight:600;color:#ffffff;margin-right:6px}
+    .task-input-group{display:flex;gap:2px;align-items:center}
+    #taskInput{width:70px;text-align:center;background:var(--btn);color:#ffffff;font-size:24px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:6px 8px}
+    .task-title{font-size:28px;font-weight:600;color:#ffffff;letter-spacing:0.5px;margin-bottom:4px}
+    .task-hash{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
+    
+    /* Example selector bar */
+    .example-selector-bar{}
+    
+    /* Code pack bar */
+    .code-pack-bar{padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;align-items:center}
+    
+    /* Editor toolbar */
+    .editor-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--stroke)}
+    .byte-count-display{display:flex;gap:20px;align-items:center}
+    .current-bytes{display:flex;align-items:baseline;gap:6px;min-width:120px}
+    .byte-value{font-size:24px;font-weight:700;color:#ffffff;min-width:60px;text-align:right}
+    .byte-label{font-size:14px;color:var(--muted)}
+    .best-bytes{display:flex;align-items:baseline;gap:6px;min-width:100px}
+    .best-label{font-size:14px;color:var(--muted)}
+    .best-value{font-size:18px;font-weight:600;color:#00ff88;min-width:40px;text-align:right}
+    .byte-delta{font-size:20px;font-weight:700;padding:2px 8px;border-radius:6px;min-width:120px;text-align:center}
+    .byte-delta.better{color:#22c55e;background:rgba(34,197,94,0.1)}
+    .byte-delta.worse{color:#ef4444;background:rgba(239,68,68,0.1)}
+    .play-button{background:#2563eb;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:18px;cursor:pointer;transition:all .2s}
+    .play-button:hover{background:#1d4ed8;transform:scale(1.05)}
+    .test-result{font-size:16px;font-weight:700;padding:4px 12px;border-radius:6px}
+    .test-result.pass{color:#22c55e;background:rgba(34,197,94,0.1)}
+    .test-result.fail{color:#ef4444;background:rgba(239,68,68,0.1)}
+    .editor-info{display:flex;gap:10px;color:var(--muted);font-size:12px;align-items:center}
+    .status-inline{color:var(--fg)}
+    .editor-actions{display:flex;gap:8px}
+    
+    /* Monaco container */
+    #monacoEditor{flex:1;min-height:400px}
+    
+    /* Test panel */
+    .test-info{margin-top:10px;padding:12px;background:var(--btn);border-radius:8px;color:var(--muted);font-size:13px}
+    .test-panel{padding:16px;flex:1;overflow-y:auto}
+    .section{background:var(--btn);border:1px solid var(--stroke);border-radius:10px;padding:12px;margin-bottom:10px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    label small{color:var(--muted)}
+    input[type=file],select,input[type=number],button{background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:10px;padding:9px 12px}
+    input[type=number]{width:90px}
+    button{cursor:pointer;transition:all .2s}
+    button:hover{background:var(--tab-hover)}
+    button.primary{background:linear-gradient(90deg,#2563eb,#8b5cf6);border:none}
+    button.primary:hover{opacity:.9}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    button:disabled:hover{background:var(--btn)}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    canvas{width:100%;height:auto;background:#1a1a1a;border:1px solid var(--stroke);border-radius:10px;image-rendering:pixelated;image-rendering:crisp-edges}
+    .stats{display:flex;gap:10px;color:var(--muted);font-size:12px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{border:1px solid var(--stroke);background:#101626;color:var(--fg);padding:6px 10px;border-radius:999px;font-size:12px}
+    .chip.ok{border-color:#1e7c4a;background:#0b2819}
+    .chip.bad{border-color:#7a1e1e;background:#2a0b0b}
+    .list{max-height:180px;overflow:auto;border:1px solid var(--stroke);border-radius:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--stroke);text-align:left}
+    tr:hover{background:#101626;cursor:pointer}
+    .pass{color:var(--ok)} .fail{color:var(--bad)}
+    .status{color:var(--muted);font-size:12px;min-height:18px;margin-bottom:12px}
+
+    /* Progress bar styles */
+    .progress-bar{display:none;margin:12px 0;height:24px;background:var(--btn);border:1px solid var(--stroke);border-radius:4px;overflow:hidden}
+    .progress-bar.active{display:flex}
+    .progress-segment{height:100%;transition:background-color 0.3s;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);position:relative}
+    .progress-train{flex:1;border-right:1px solid var(--stroke)}
+    .progress-test{flex:1;border-right:1px solid var(--stroke)}
+    .progress-arcgen{flex:3}
+    .progress-segment.pending{background:var(--btn);color:var(--muted)}
+    .progress-segment.running{background:#2563eb;animation:pulse 1s infinite;color:white}
+    .progress-segment.complete{background:#22c55e;color:white}
+    .progress-segment.failed{background:#ef4444;color:white}
+    @keyframes pulse{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
+    
+    /* Debug tab placeholder */
+    .debug-placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:16px}
+    
+    @media (max-width:1200px){
+      .test-panel-container{width:300px}
+    }
+    @media (max-width:960px){
+      .grids-container{flex-direction:column}
+      .grids-left{border-right:none;padding-right:0;border-bottom:2px solid var(--stroke);padding-bottom:12px;margin-bottom:12px}
+      .grids-right{padding-left:0}
+      .grids-container canvas{height:100px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header" style="display:flex;justify-content:space-between;align-items:center">
+      <h1>ARC-AGI Workbench <span>by Ravi Annaswamy</span></h1>
+      <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-right:20px" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Top Section: Task Browser -->
+      <div class="top-section">
+        <!-- Task Title and Hash Display -->
+        <div class="task-info-display">
+          <div id="mainTitle" class="main-title">ARC-GEN</div>
+          <div class="task-navigation">
+            <span class="task-label">Task</span>
+            <div class="task-input-group">
+              <button id="prevTask" class="nav-btn">◀</button>
+              <input id="taskInput" type="text" placeholder="1" title="Type task number and press Enter" />
+              <button id="nextTask" class="nav-btn">▶</button>
+            </div>
+          </div>
+          <div style="margin-top:10px;text-align:center;">
+            <div id="taskTitle" class="task-title" style="font-size:18px;font-weight:700;color:#ffffff;margin-bottom:6px;">Loading...</div>
+            <div id="taskHash" class="task-hash" style="font-size:11px;color:var(--dim);font-family:ui-monospace,monospace;"></div>
+          </div>
+        </div>
+
+        <!-- Grid Visualizations -->
+        <div style="padding:12px 20px;flex-grow:1;flex-shrink:1;min-height:0;display:flex;flex-direction:column;">
+          <div class="grid-size-control">
+            <span style="font-size:12px;color:var(--muted)">Grid Size:</span>
+            <input type="range" class="grid-size-slider" id="gridSizeSlider" min="100" max="300" value="150" />
+            <span id="gridSizeValue" style="font-size:12px;color:var(--muted)">150px</span>
+          </div>
+          <div class="grids-container">
+            <div class="grids-left">
+              <div class="grid-item">
+                <div class="grid-label">Input</div>
+                <canvas id="inCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="grid-item">
+                <div class="grid-label">Expected</div>
+                <canvas id="exCanvas" width="200" height="200"></canvas>
+              </div>
+            </div>
+            <div class="grids-right">
+              <div class="grid-item">
+                <div class="grid-label">Predicted</div>
+                <canvas id="acCanvas" width="200" height="200"></canvas>
+                <div id="exampleResult" style="margin-top:6px;font-size:14px;font-weight:700;height:20px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Example Selector -->
+          <div class="example-selector-bar" style="background:var(--panel);border-top:1px solid var(--stroke);padding:10px 20px;margin-top:12px;border-radius:8px;">
+            <div style="display:flex;align-items:center;gap:20px;justify-content:center">
+              <label style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;color:var(--fg);font-weight:500">Group:</span>
+                <select id="setSel" style="width:100px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 10px;font-size:13px">
+                  <option value="train">train</option>
+                  <option value="test">test</option>
+                  <option value="arc-gen">arc-gen</option>
+                </select>
+              </label>
+              <div style="display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--stroke);border-right:1px solid var(--stroke)">
+                <span style="font-size:13px;color:var(--fg);font-weight:500">Example:</span>
+                <div style="display:flex;gap:2px;align-items:center">
+                  <button id="prevEx" class="nav-btn" style="padding:6px 8px">◀</button>
+                  <input id="idInput" type="number" min="0" max="999" style="width:45px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 4px;font-size:13px" value="0" />
+                  <button id="nextEx" class="nav-btn" style="padding:6px 8px">▶</button>
+                </div>
+              </div>
+              <div id="exampleInfo" style="font-size:12px;color:var(--success);font-weight:500;padding:4px 8px;background:var(--btn);border-radius:4px;display:none"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Editor and Testing -->
+      <div class="bottom-section">
+        <!-- Editor Panel -->
+        <div class="editor-panel">
+          <!-- Code Pack Selector -->
+            <div class="code-pack-bar">
+              <label>
+                <span style="font-size:12px;color:var(--muted)">Code Pack:</span>
+                <select id="codePack" style="margin-left:8px;width:180px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px">
+                  <option value="">None</option>
+                </select>
+              </label>
+            </div>
+            
+            <!-- Editor Toolbar -->
+            <div class="editor-toolbar">
+              <div class="byte-count-display">
+                <div class="current-bytes">
+                  <span id="bytes" class="byte-value">0</span>
+                  <span class="byte-label">bytes</span>
+                </div>
+                <div class="best-bytes">
+                  <span class="best-label">LB Best:</span>
+                  <span id="bestBytes" class="best-value">--</span>
+                </div>
+                <div id="byteDelta" class="byte-delta"></div>
+              </div>
+              <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
+              <div class="editor-info">
+                <span id="status" class="status-inline"></span>
+              </div>
+            </div>
+
+            <!-- Monaco Editor -->
+            <div style="margin-top:20px">
+              <div id="monacoEditor"></div>
+            </div>
+        </div>
+
+        <!-- Test Panel -->
+        <div class="test-panel-container">
+        <div class="test-panel">
+          <!-- Test Controls -->
+          <div class="section">
+            <div class="row" style="justify-content:center">
+              <button id="runAll" class="primary" disabled style="font-weight:700">Test full set</button>
+            </div>
+            <!-- Progress Bar -->
+            <div id="progressBar" class="progress-bar">
+              <div class="progress-segment progress-train pending" title="train">train</div>
+              <div class="progress-segment progress-test pending" title="test">test</div>
+              <div class="progress-segment progress-arcgen pending" title="arc-gen">arc-gen</div>
+            </div>
+          </div>
+
+          <!-- Results Summary -->
+          <div class="section" id="resSec" style="display:none">
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px">Test Results</div>
+            <div class="chips" id="summaryChips"></div>
+            <div id="testMessage" style="margin-top:10px;font-size:14px;font-weight:600;text-align:center"></div>
+
+            <!-- Failures List -->
+            <div id="failuresSection" style="display:none">
+              <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Failed Cases</div>
+              <div class="list" style="max-height:150px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:60px">Set</th>
+                      <th style="width:40px">#</th>
+                      <th>Status</th>
+                      <th style="width:60px">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="failBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Failure Visualization -->
+            <div id="failureViz" style="display:none">
+              <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Failure Details: <span id="failureTitle"></span></div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div>
+                  <div style="margin:0 0 4px;font-size:11px;color:var(--muted)">Input</div>
+                  <canvas id="failInCanvas" width="100" height="100" style="width:100px;height:100px"></canvas>
+                </div>
+                <div>
+                  <div style="margin:0 0 4px;font-size:11px;color:var(--muted)">Expected</div>
+                  <canvas id="failExCanvas" width="100" height="100" style="width:100px;height:100px"></canvas>
+                </div>
+                <div>
+                  <div style="margin:0 0 4px;font-size:11px;color:var(--muted)">Actual</div>
+                  <canvas id="failAcCanvas" width="100" height="100" style="width:100px;height:100px"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Execution Log -->
+            <div style="margin:12px 0 8px;font-weight:600;font-size:13px">Execution Log</div>
+            <pre id="log" style="white-space:pre-wrap;margin:0;max-height:150px;overflow:auto;color:#b9c6e1;background:var(--btn);padding:8px;border-radius:6px;font-size:11px"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load JSZip for handling code packs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  
+  <!-- Load Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  
+  <!-- Load Monaco Editor Standalone Bundle -->
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css">
+  <script>var require = { paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }, 'vs/nls': { availableLanguages: { '*': 'en' } } };</script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  
+  <script>
+  "use strict";
+  
+  // ==== Elements ====
+  const E = id=>document.getElementById(id);
+  const els = {
+    status:E('status'),setSel:E('setSel'),idInput:E('idInput'),
+    exampleInfo:E('exampleInfo'),
+    runOne:E('runOne'),runAll:E('runAll'),
+    inCanvas:E('inCanvas'),exCanvas:E('exCanvas'),acCanvas:E('acCanvas'),
+    bytes:E('bytes'),
+    summaryChips:E('summaryChips'),failBody:E('failBody'),log:E('log'),
+    progressBar:E('progressBar'),resSec:E('resSec'),testMessage:E('testMessage'),
+    failuresSection:E('failuresSection'),failureViz:E('failureViz'),failureTitle:E('failureTitle'),
+    failInCanvas:E('failInCanvas'),failExCanvas:E('failExCanvas'),failAcCanvas:E('failAcCanvas'),
+    taskInput:E('taskInput'),codePack:E('codePack'),
+    prevTask:E('prevTask'),nextTask:E('nextTask'),prevEx:E('prevEx'),nextEx:E('nextEx'),
+    taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
+    bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
+    gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
+    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle')
+  };
+  
+  // ==== Monaco Editor Setup ====
+  let editor = null;
+  let currentCode = '';
+  
+  // Default solver (Task 047)
+  const DEFAULT_CODE=`def p(g):
+    h, w = len(g), len(g[0])
+    a = b = None
+    
+    # Find positions of 7 and 8
+    for y in range(h):
+        for x in range(w):
+            if g[y][x] == 7:
+                a = (y, x)
+            if g[y][x] == 8:
+                b = (y, x)
+    
+    # Create output grid
+    o = [[0] * w for _ in range(h)]
+    
+    # Draw lines if positions found
+    if a and b:
+        # Draw horizontal and vertical lines
+        for y in range(h):
+            o[y][a[1]] = 7
+            o[y][b[1]] = 8
+        for x in range(w):
+            o[a[0]][x] = 7
+            o[b[0]][x] = 8
+        
+        # Mark intersections
+        o[a[0]][b[1]] = 2
+        o[b[0]][a[1]] = 2
+    
+    return o
+`;
+  
+  // Initialize Monaco with AMD loader
+  require(['vs/editor/editor.main'], function() {
+    // Initialize Monaco Editor
+    editor = monaco.editor.create(document.getElementById('monacoEditor'), {
+      value: DEFAULT_CODE,
+      language: 'python',
+      theme: 'vs-dark',
+      minimap: { enabled: false },
+      fontSize: 15,
+      fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace',
+      automaticLayout: true,
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      lineNumbers: 'on',
+      renderWhitespace: 'selection',
+      bracketPairColorization: { enabled: true },
+      suggest: { showMethods: true, showFunctions: true, showVariables: true },
+      scrollbar: {
+        vertical: 'visible',
+        horizontal: 'visible',
+        verticalScrollbarSize: 12,
+        horizontalScrollbarSize: 12,
+        alwaysConsumeMouseWheel: false
+      }
+    });
+    
+    // Update code stats when content changes
+    editor.onDidChangeModelContent(() => {
+      currentCode = editor.getValue();
+      updateCodeStats();
+    });
+    
+    currentCode = DEFAULT_CODE;
+    updateCodeStats();
+  });
+  
+  // Removed tab navigation - no longer needed
+  
+  // ==== Palette ====
+  const PAL = {0:'#000000',1:'#2d5be3',2:'#e53935',3:'#22c55e',4:'#facc15',5:'#9e9e9e',6:'#ec4899',7:'#fb8c00',8:'#06b6d4',9:'#8b5e3c'};
+  const colorFor = n => PAL[n]||'#000';
+  
+  // ==== Render grid ====
+  function renderGrid(canvas, grid){
+    if(!grid||!grid.length||!grid[0].length){ 
+      const ctx=canvas.getContext('2d'); 
+      ctx.clearRect(0,0,canvas.width,canvas.height); 
+      return; 
+    }
+    const h=grid.length,w=grid[0].length;
+    const gridLineWidth = 1;
+    const borderWidth = 2; // Border thickness
+    const padding = 6; // Total padding including border
+    const cellSize=Math.max(6,Math.floor(Math.min((300-2*padding)/w,(300-2*padding)/h)));
+    const size = cellSize - gridLineWidth;
+    
+    // Account for grid lines and padding in canvas size
+    canvas.width = w * cellSize + gridLineWidth + (2 * padding);
+    canvas.height = h * cellSize + gridLineWidth + (2 * padding);
+    
+    const ctx=canvas.getContext('2d');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw prominent grey border
+    ctx.fillStyle = '#6b7280'; // Lighter grey for better visibility
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw dark inner area (creates the border effect)
+    ctx.fillStyle = '#1f2937'; // Dark background
+    ctx.fillRect(
+      borderWidth, 
+      borderWidth, 
+      canvas.width - 2 * borderWidth, 
+      canvas.height - 2 * borderWidth
+    );
+    
+    // Fill grid area with grid line color
+    ctx.fillStyle = '#374151'; // Lighter grid lines for better visibility
+    ctx.fillRect(padding, padding, w * cellSize + gridLineWidth, h * cellSize + gridLineWidth);
+    
+    // Draw cells with gaps for grid lines
+    for(let y=0;y<h;y++) {
+      for(let x=0;x<w;x++){ 
+        ctx.fillStyle=colorFor(grid[y][x]|0); 
+        ctx.fillRect(
+          padding + x * cellSize + gridLineWidth,
+          padding + y * cellSize + gridLineWidth,
+          size,
+          size
+        ); 
+      }
+    }
+  }
+  
+  // ==== State ====
+  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0};
+  const setStatus=s=>els.status.textContent=s;
+  const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
+  const clearLog=()=>els.log.textContent='';
+  
+  // ==== Load Reference Data ====
+  async function loadReferenceData() {
+    // Load task titles and hashes
+    try {
+      const titlesResponse = await fetch('task-reference-data/arcgen_titles.json');
+      if (titlesResponse.ok) {
+        const titlesData = await titlesResponse.json();
+        state.taskTitles = titlesData;
+        console.log('Loaded task titles:', Object.keys(titlesData).length);
+      }
+    } catch (error) {
+      console.error('Failed to load task titles:', error);
+    }
+    
+    // Load best bytes data
+    try {
+      const bytesResponse = await fetch('leader-board/best-solution-bytes.json');
+      if (bytesResponse.ok) {
+        const bytesData = await bytesResponse.json();
+        state.bestBytes = bytesData.task_lookup || {};
+        console.log('Loaded best bytes data:', Object.keys(state.bestBytes).length);
+      }
+    } catch (error) {
+      console.error('Failed to load best bytes:', error);
+    }
+  }
+  
+  // Update task info display
+  function updateTaskInfo(taskId) {
+    const paddedId = String(taskId).padStart(3, '0');
+    
+    // Update title and hash
+    if (state.taskTitles[paddedId]) {
+      const info = state.taskTitles[paddedId];
+      els.taskTitle.textContent = info.title || 'Unknown';
+      els.taskHash.textContent = info.hash || '';
+    } else {
+      els.taskTitle.textContent = `Task ${taskId}`;
+      els.taskHash.textContent = '';
+    }
+    
+    // Update best bytes
+    if (state.bestBytes[paddedId]) {
+      els.bestBytes.textContent = state.bestBytes[paddedId];
+      updateByteDelta();
+    } else {
+      els.bestBytes.textContent = '--';
+      els.byteDelta.textContent = '';
+      els.byteDelta.className = 'byte-delta';
+    }
+  }
+  
+  // Update byte count delta
+  function updateByteDelta() {
+    const currentBytes = parseInt(els.bytes.textContent) || 0;
+    const paddedId = String(state.currentTaskId).padStart(3, '0');
+    const bestBytes = state.bestBytes[paddedId];
+    
+    if (bestBytes && currentBytes > 0) {
+      const delta = currentBytes - bestBytes;
+      if (delta === 0) {
+        els.byteDelta.textContent = '✓ Optimal';
+        els.byteDelta.className = 'byte-delta better';
+      } else if (delta > 0) {
+        els.byteDelta.textContent = `+${delta}`;
+        els.byteDelta.className = 'byte-delta worse';
+      } else {
+        els.byteDelta.textContent = `${delta}`;
+        els.byteDelta.className = 'byte-delta better';
+      }
+    } else {
+      els.byteDelta.textContent = '';
+      els.byteDelta.className = 'byte-delta';
+    }
+  }
+  
+  // ==== Code Pack Management ====
+  async function loadAvailableCodePacks() {
+    const publicPacks = [];
+    const privatePacks = [];
+
+    // Helper to check if a pack exists
+    const checkPack = async (path, name) => {
+      try {
+        const response = await fetch(`${path}${name}.zip`, { method: 'HEAD' });
+        if (response.ok) return name;
+      } catch (e) {}
+      return null;
+    };
+
+    // Helper to parse directory listing
+    const parseDirectory = async (path) => {
+      const packs = [];
+      try {
+        const response = await fetch(path);
+        if (response.ok) {
+          const text = await response.text();
+
+          // Look for .zip files in various HTML formats
+          const patterns = [
+            /href="([^"]+\.zip)"/gi,
+            /<a[^>]+>([^<]+\.zip)</gi,
+            /([a-zA-Z0-9_-]+\.zip)/gi
+          ];
+
+          const foundFiles = new Set();
+          patterns.forEach(pattern => {
+            const matches = text.matchAll(pattern);
+            for (const match of matches) {
+              const fileName = match[1].split('/').pop().replace('.zip', '');
+              if (fileName && !fileName.includes('..')) {
+                foundFiles.add(fileName);
+              }
+            }
+          });
+
+          foundFiles.forEach(name => packs.push(name));
+        }
+      } catch (error) {
+        console.log(`Directory listing not available for ${path}`);
+      }
+      return packs;
+    };
+
+    // First check private folder
+    const privatePath = 'code-packs/private/';
+    const privateFiles = await parseDirectory(privatePath);
+    privatePacks.push(...privateFiles);
+
+    // Check public folder
+    const publicPath = 'code-packs/public/';
+    const publicFiles = await parseDirectory(publicPath);
+    publicPacks.push(...publicFiles);
+
+    // Update select options
+    els.codePack.innerHTML = '<option value="">None</option>';
+
+    // Add private packs first (with 'private/' prefix)
+    if (privatePacks.length > 0) {
+      const group = document.createElement('optgroup');
+      group.label = 'Private Packs';
+      privatePacks.forEach(name => {
+        const option = document.createElement('option');
+        option.value = `private/${name}`;
+        option.textContent = name;
+        group.appendChild(option);
+      });
+      els.codePack.appendChild(group);
+    }
+
+    // Add public packs (with 'public/' prefix)
+    if (publicPacks.length > 0) {
+      const group = document.createElement('optgroup');
+      group.label = 'Public Packs';
+      publicPacks.forEach(name => {
+        const option = document.createElement('option');
+        option.value = `public/${name}`;
+        option.textContent = name;
+        group.appendChild(option);
+      });
+      els.codePack.appendChild(group);
+    }
+
+    if (privatePacks.length === 0 && publicPacks.length === 0) {
+      // If no packs found, add a placeholder option
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = '(Place .zip files in code-packs/ or code-packs/private/)';
+      option.disabled = true;
+      els.codePack.appendChild(option);
+    }
+
+    // Return the latest private pack if available
+    return privatePacks.length > 0 ? `private/${privatePacks[privatePacks.length - 1]}` : null;
+  }
+  
+  async function loadCodePack(packName) {
+    if (!packName) {
+      state.currentCodePack = null;
+      state.codePackFiles = {};
+      return;
+    }
+    
+    try {
+      const url = `code-packs/${packName}.zip`;
+      console.log('Fetching code pack from:', url);
+      
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      console.log('Downloaded zip file, size:', arrayBuffer.byteLength);
+      
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      
+      state.codePackFiles = {};
+      let fileCount = 0;
+      
+      // Extract all Python files
+      for (const [path, file] of Object.entries(zip.files)) {
+        if (path.endsWith('.py') && !file.dir) {
+          const content = await file.async('string');
+          const fileName = path.split('/').pop();
+          state.codePackFiles[fileName] = content;
+          fileCount++;
+          console.log('Extracted:', fileName);
+        }
+      }
+      
+      state.currentCodePack = packName;
+      // Don't show status for code pack loading
+
+      // Rebuild curriculum if in curriculum mode
+      if (state.curriculumMode) {
+        buildCurriculum();
+      }
+      console.log(`Code pack ${packName} loaded with ${fileCount} files`);
+      
+      // Load code for current task if available (includes auto-run)
+      await loadCodeForCurrentTask();
+      
+    } catch (error) {
+      console.error('Error loading code pack:', error);
+      setStatus(`Error: ${error.message}`);
+      
+      // More helpful error messages
+      if (error.message.includes('404')) {
+        setStatus(`Code pack "${packName}.zip" not found in code-packs/ folder`);
+      } else if (error.message.includes('Failed to fetch')) {
+        setStatus(`Cannot access code-packs/ folder. Check server settings.`);
+      }
+      
+      state.currentCodePack = null;
+      state.codePackFiles = {};
+    }
+  }
+  
+  async function loadCodeForCurrentTask() {
+    if (!state.currentCodePack || !state.currentTaskId) return;
+
+    const paddedId = String(state.currentTaskId).padStart(3, '0');
+    const fileName = `task${paddedId}.py`;
+
+    if (state.codePackFiles[fileName]) {
+      if (editor) {
+        editor.setValue(state.codePackFiles[fileName]);
+        // Don't show status for code loading
+        // Auto-run the test when code is loaded
+        await updateView();
+      }
+    } else {
+      console.log(`No code found for ${fileName} in current pack`);
+    }
+  }
+
+  // Curriculum mode functions
+  function buildCurriculum() {
+    if (!state.codePackFiles || Object.keys(state.codePackFiles).length === 0) {
+      return false;
+    }
+
+    // Create array of tasks with their code lengths
+    const tasksWithLengths = [];
+    for (const [fileName, code] of Object.entries(state.codePackFiles)) {
+      const match = fileName.match(/task(\d{3})\.py/);
+      if (match) {
+        const taskId = parseInt(match[1]);
+        tasksWithLengths.push({
+          taskId: taskId,
+          length: code.length,
+          fileName: fileName
+        });
+      }
+    }
+
+    // Sort by code length (ascending - shortest first)
+    tasksWithLengths.sort((a, b) => a.length - b.length);
+
+    // Store the sorted order
+    state.curriculumOrder = tasksWithLengths.map(t => t.taskId);
+
+    return true;
+  }
+
+  function toggleCurriculumMode() {
+    if (!state.curriculumMode) {
+      // Entering curriculum mode
+      if (!buildCurriculum()) {
+        alert('Please load a code pack first to use the curriculum mode.');
+        return;
+      }
+
+      state.curriculumMode = true;
+
+      // Update UI
+      els.curriculumToggle.textContent = 'Choose Task Sequence';
+      els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#22c55e">Curriculum</span>';
+
+      // Find current task in curriculum order
+      const currentIndex = state.curriculumOrder.indexOf(state.currentTaskId);
+      state.curriculumIndex = currentIndex >= 0 ? currentIndex : 0;
+
+      // Load first task in curriculum
+      if (state.curriculumOrder.length > 0) {
+        loadTaskFromFile(state.curriculumOrder[0]);
+      }
+    } else {
+      // Exiting curriculum mode
+      state.curriculumMode = false;
+
+      // Update UI
+      els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
+      els.mainTitle.innerHTML = 'ARC-GEN';
+
+      // Stay on current task
+    }
+  }
+  
+  // Task loading from arc-gen-dataset folder
+  async function loadTaskFromFile(taskId) {
+    const paddedId = String(taskId).padStart(3, '0');
+    const url = `arc-gen-dataset/task${paddedId}.json`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Task ${taskId} not found`);
+      }
+      
+      const json = await response.json();
+      
+      // Process the task data
+      const sets = {};
+      ['train', 'test', 'arc-gen'].forEach(k => {
+        if (Array.isArray(json[k])) sets[k] = json[k];
+      });
+      
+      if (!Object.keys(sets).length) {
+        setStatus(`Task ${taskId}: No valid data found`);
+        return false;
+      }
+      
+      state.sets = sets;
+      state.order = Object.keys(sets);
+      state.curSet = state.order[0];
+      state.curId = 0;
+      state.results = {};
+      state.fileName = `task${paddedId}.json`;
+      state.currentTaskId = taskId;
+
+      // Update curriculum index if in curriculum mode
+      if (state.curriculumMode && state.curriculumOrder.length > 0) {
+        const index = state.curriculumOrder.indexOf(taskId);
+        if (index >= 0) {
+          state.curriculumIndex = index;
+        }
+      }
+
+      // Clear test results when switching tasks
+      els.summaryChips.innerHTML = '';
+      els.failBody.innerHTML = '';
+      els.exampleResult.textContent = '';
+      els.progressBar.classList.remove('active');
+      els.progressBar.querySelectorAll('.progress-segment').forEach(seg => {
+        seg.className = seg.className.replace(/running|complete|failed/g, 'pending').trim();
+      });
+      els.resSec.style.display = 'none';
+      els.failuresSection.style.display = 'none';
+      els.testMessage.textContent = '';
+
+      // Update UI - show just the number for cleaner display
+      els.taskInput.value = taskId;
+      els.setSel.disabled = false;
+      els.idInput.disabled = false;
+      els.runOne.disabled = false;
+      els.runAll.disabled = false;
+      
+      // Visual feedback - brief flash of success
+      els.taskInput.style.borderColor = '#22c55e';
+      els.taskInput.style.boxShadow = '0 0 6px #22c55e';
+      setTimeout(() => {
+        els.taskInput.style.borderColor = '';
+        els.taskInput.style.boxShadow = '';
+      }, 300);
+      
+      // Update select options
+      [...els.setSel.options].forEach(o => {
+        o.disabled = !sets[o.value];
+        if (o.disabled && o.selected) o.selected = false;
+      });
+      
+      els.setSel.value = state.curSet;
+      els.idInput.value = 1; // Display 1-based index
+      const arr0 = state.sets[state.curSet] || [];
+      els.idInput.max = Math.max(0, arr0.length - 1);
+      // Example count shown in exampleInfo display
+
+      clearLog();
+      log(`Loaded task ${taskId} (${state.fileName})`);
+      await updateView();
+      drawSummary();
+      // drawFailures([]); // Don't pre-fill the failure list
+      updateTestInfo();
+      
+      // Load code for this task if code pack is selected
+      await loadCodeForCurrentTask();
+      
+      // Update task info display
+      updateTaskInfo(taskId);
+      
+      // Clear the loading status
+      setStatus('');
+      
+      return true;
+    } catch (error) {
+      setStatus(`Error loading task ${taskId}: ${error.message}`);
+      
+      // Visual feedback for error
+      els.taskInput.style.borderColor = '#ef4444';
+      els.taskInput.style.boxShadow = '0 0 6px #ef4444';
+      setTimeout(() => {
+        els.taskInput.style.borderColor = '';
+        els.taskInput.style.boxShadow = '';
+      }, 1000);
+      
+      return false;
+    }
+  }
+  
+  // ==== Pyodide ====
+  let pyReady=false,pyodide=null;
+  async function ensurePy(){ 
+    if(pyReady) return; 
+    setStatus('Loading Python runtime...'); 
+    pyodide=await loadPyodide(); 
+    pyReady=true; 
+    setStatus('Python ready.'); 
+  }
+  
+  // ==== Task Navigation Handlers ====
+  
+  // Code pack selection
+  els.codePack.addEventListener('change', async () => {
+    const packName = els.codePack.value;
+    await loadCodePack(packName);
+  });
+  
+  // Grid size slider
+  els.gridSizeSlider.addEventListener('input', () => {
+    const size = els.gridSizeSlider.value;
+    els.gridSizeValue.textContent = `${size}px`;
+    
+    // Update all canvas heights
+    const canvases = [els.inCanvas, els.exCanvas, els.acCanvas];
+    canvases.forEach(canvas => {
+      canvas.style.height = `${size}px`;
+    });
+  });
+  
+  // Task input field - load on Enter or blur
+  els.taskInput.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      const taskId = parseInt(els.taskInput.value) || 1;
+      await loadTaskFromFile(taskId);
+    }
+  });
+  
+  els.taskInput.addEventListener('blur', async () => {
+    const taskId = parseInt(els.taskInput.value);
+    if (taskId && taskId !== state.currentTaskId) {
+      await loadTaskFromFile(taskId);
+    }
+  });
+  
+  // Task navigation buttons
+  els.prevTask.addEventListener('click', async () => {
+    if (state.curriculumMode && state.curriculumOrder.length > 0) {
+      // Navigate in curriculum order
+      if (state.curriculumIndex > 0) {
+        state.curriculumIndex--;
+        await loadTaskFromFile(state.curriculumOrder[state.curriculumIndex]);
+      }
+    } else {
+      // Normal navigation
+      const newId = Math.max(1, state.currentTaskId - 1);
+      await loadTaskFromFile(newId);
+    }
+  });
+
+  els.nextTask.addEventListener('click', async () => {
+    if (state.curriculumMode && state.curriculumOrder.length > 0) {
+      // Navigate in curriculum order
+      if (state.curriculumIndex < state.curriculumOrder.length - 1) {
+        state.curriculumIndex++;
+        await loadTaskFromFile(state.curriculumOrder[state.curriculumIndex]);
+      }
+    } else {
+      // Normal navigation
+      const newId = state.currentTaskId + 1;
+      await loadTaskFromFile(newId);
+    }
+  });
+  
+  // Example navigation
+  els.prevEx.addEventListener('click', async () => {
+    const newId = Math.max(0, state.curId - 1);
+    state.curId = newId;
+    els.idInput.value = newId + 1; // Display 1-based index
+    await updateView();
+  });
+  
+  els.nextEx.addEventListener('click', async () => {
+    const arr = state.sets[state.curSet] || [];
+    const newId = Math.min(arr.length - 1, state.curId + 1);
+    state.curId = newId;
+    els.idInput.value = newId + 1; // Display 1-based index
+    await updateView();
+  });
+  
+  // Example ID input change - supports typing and Enter
+  els.idInput.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      const n = parseInt(els.idInput.value, 10) - 1; // Convert to 0-based
+      const arr = state.sets[state.curSet] || [];
+      if (!isNaN(n) && n >= 0 && n < arr.length) {
+        state.curId = n;
+        await updateView();
+      }
+    }
+  });
+  
+  els.idInput.addEventListener('change', async () => {
+    const n = parseInt(els.idInput.value, 10) - 1; // Convert to 0-based
+    const arr = state.sets[state.curSet] || [];
+    if (!isNaN(n) && n >= 0 && n < arr.length) {
+      state.curId = n;
+      await updateView();
+    } else {
+      // Reset to current value if invalid
+      els.idInput.value = state.curId + 1;
+    }
+  });
+  
+  // Set selection change
+  els.setSel.addEventListener('change', async () => {
+    state.curSet = els.setSel.value;
+    const arr = state.sets[state.curSet] || [];
+    state.curId = Math.min(state.curId, Math.max(0, arr.length - 1));
+    els.idInput.max = Math.max(0, arr.length - 1);
+    els.idInput.value = state.curId + 1; // Display 1-based index
+    // Example count shown in exampleInfo display
+    await updateView();
+  });
+  
+  function getCurrent(){ 
+    const a=state.sets[state.curSet]||[]; 
+    return a[state.curId]; 
+  }
+  
+  async function updateView(skipAutoRun = false){
+    const ex=getCurrent();
+    if(!ex){
+      renderGrid(els.inCanvas,[[0]]);
+      renderGrid(els.exCanvas,[[0]]);
+      renderGrid(els.acCanvas,[[0]]);
+      els.exampleResult.textContent = '';
+      if (els.exampleInfo) {
+        els.exampleInfo.style.display = 'none';
+      }
+      return;
+    }
+
+    // Update example info display
+    if (els.exampleInfo) {
+      els.exampleInfo.textContent = `${state.curSet.toUpperCase()} ${state.curId + 1}/${(state.sets[state.curSet] || []).length}`;
+      els.exampleInfo.style.display = 'block';
+    }
+
+    renderGrid(els.inCanvas,ex.input);
+    if(!ex.output){
+      console.warn('No output grid for',state.curSet,'#',state.curId);
+      renderGrid(els.exCanvas,[[0]]);
+    } else {
+      renderGrid(els.exCanvas,ex.output);
+    }
+    renderGrid(els.acCanvas,ex.input.map(r=>r.map(()=>0)));
+
+    // Auto-run test if we have code (unless explicitly skipped)
+    if (!skipAutoRun && editor && editor.getValue().trim()) {
+      await runSelected();
+    }
+  }
+  
+  // ==== Run solver ====
+  function deepEq(a,b){ 
+    if(!a||!b||a.length!==b.length) return false; 
+    const h=a.length,w=a[0].length; 
+    if(!b[0]||b[0].length!==w) return false; 
+    for(let y=0;y<h;y++) {
+      for(let x=0;x<w;x++) {
+        if((a[y][x]|0)!==(b[y][x]|0)) return false;
+      }
+    } 
+    return true; 
+  }
+  
+  async function runOne(setName, idx){
+    await ensurePy(); 
+    const ex=state.sets[setName][idx]; 
+    let out,pyIn,pyOut;
+    const codeToRun = editor ? editor.getValue() : currentCode;
+    try{ 
+      await pyodide.runPythonAsync(codeToRun); 
+      pyIn=pyodide.toPy(ex.input); 
+      pyodide.globals.set('g',pyIn); 
+      pyOut=await pyodide.runPythonAsync('p(g)'); 
+      out=pyOut.toJs({deep:true}); 
+    }
+    catch(err){ 
+      log(`[${setName} #${idx}] Error: ${err.message}`); 
+      return {pass:false,actual:null,error:String(err)} 
+    }
+    finally{ 
+      if(pyOut && pyOut.destroy) pyOut.destroy(); 
+      if(pyIn && pyIn.destroy) pyIn.destroy(); 
+    }
+    const pass=deepEq(ex.output,out); 
+    if(setName===state.curSet && idx===state.curId) renderGrid(els.acCanvas,out); 
+    if(!pass) log(`[${setName} #${idx}] FAIL`); 
+    return {pass,actual:out};
+  }
+  
+  async function runSelected(){
+    // Clear Full test results when running single example
+    els.summaryChips.innerHTML = '';
+    els.failBody.innerHTML = '';
+    els.progressBar.classList.remove('active');
+    els.progressBar.querySelectorAll('.progress-segment').forEach(seg => {
+      seg.className = seg.className.replace(/running|complete|failed/g, 'pending').trim();
+    });
+    els.resSec.style.display = 'none';
+    els.failuresSection.style.display = 'none';
+    els.testMessage.textContent = '';
+
+    const r=await runOne(state.curSet,state.curId);
+
+    // Update example result display next to Predicted grid
+    if (r.pass) {
+      els.exampleResult.textContent = 'PASS';
+      els.exampleResult.style.color = '#22c55e';
+    } else {
+      els.exampleResult.textContent = 'FAIL';
+      els.exampleResult.style.color = '#ef4444';
+    }
+
+    // Always update the actual grid display with the result
+    if (r.actual) {
+      renderGrid(els.acCanvas, r.actual);
+    } else {
+      // If there was an error, show empty grid
+      const ex = getCurrent();
+      if (ex) {
+        renderGrid(els.acCanvas, ex.input.map(r => r.map(() => 0)));
+      }
+    }
+  }
+  
+  async function runAll(){
+    await ensurePy();
+    clearLog();
+
+    // Show progress bar
+    els.progressBar.classList.add('active');
+    els.resSec.style.display = 'none';
+    els.failuresSection.style.display = 'none';
+
+    const summary=[], fails=[];
+    let stopTesting = false;
+
+    // Map set names to progress segments
+    const segmentMap = {
+      'train': els.progressBar.querySelector('.progress-train'),
+      'test': els.progressBar.querySelector('.progress-test'),
+      'arc-gen': els.progressBar.querySelector('.progress-arcgen')
+    };
+
+    for(const k of state.order){
+      if (stopTesting) {
+        // Mark remaining segments as pending
+        const segment = segmentMap[k];
+        if (segment && !segment.classList.contains('complete') && !segment.classList.contains('failed')) {
+          segment.classList.remove('running');
+          segment.classList.add('pending');
+        }
+        continue;
+      }
+
+      const segment = segmentMap[k];
+      if (segment) {
+        segment.classList.remove('pending', 'complete', 'failed');
+        segment.classList.add('running');
+      }
+
+      const arr=state.sets[k];
+      const res=[];
+      let passed=0;
+      let i;
+      for(i=0;i<arr.length;i++){
+        const r=await runOne(k,i);
+        res.push(r);
+        if(r.pass) {
+          passed++;
+        } else {
+          fails.push({k,i});
+          // Stop testing on first failure
+          stopTesting = true;
+          break;
+        }
+      }
+      state.results[k]=res;
+      summary.push({k,passed,total: stopTesting ? i+1 : arr.length});
+
+      // Update segment status
+      if (segment) {
+        segment.classList.remove('running');
+        segment.classList.add(passed === res.length ? 'complete' : 'failed');
+      }
+    }
+
+    // Show results section
+    els.resSec.style.display = 'block';
+    drawSummary(summary);
+    drawFailures(fails);
+
+    if(fails.length){
+      els.testMessage.textContent = `Testing stopped at first failure: ${fails[0].k} #${fails[0].i + 1}`;
+      els.testMessage.style.color = '#ef4444';
+      els.failuresSection.style.display = 'block';
+
+      const f=fails[0];
+      els.setSel.value=f.k;
+      state.curSet=f.k;
+      els.idInput.value=f.i + 1; // Display 1-based index
+      state.curId=f.i;
+      await updateView(true); // Skip auto-run to preserve test results
+      // Auto-scroll to top to show the failed example
+      document.querySelector('.main-content').scrollTop = 0;
+    }
+    else {
+      els.testMessage.textContent = 'All tests passed! 🎉';
+      els.testMessage.style.color = '#22c55e';
+      els.failuresSection.style.display = 'none';
+      // Don't show status - already shown in test message
+    }
+  }
+  
+  // Results rendering
+  function drawSummary(sum){ 
+    els.summaryChips.innerHTML=''; 
+    const arr = sum || state.order.map(k=>{ 
+      const a=state.sets[k]||[]; 
+      const r=state.results[k]; 
+      const passed=r? r.filter(x=>x.pass).length : 0; 
+      return {k,passed,total:a.length}; 
+    });
+    for(const s of arr){ 
+      const sp=document.createElement('span'); 
+      const ok=s.passed===s.total; 
+      sp.className='chip '+(ok?'ok':(s.passed? '':'bad')); 
+      sp.textContent=`${s.k}: ${s.passed}/${s.total}`; 
+      els.summaryChips.appendChild(sp); 
+    }
+  }
+  
+  function drawFailures(fails){
+    els.failBody.innerHTML='';
+    for(const f of fails){
+      const tr=document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.innerHTML=`<td>${f.k}</td><td>${f.i}</td><td class="fail">FAIL</td><td><button onclick="event.stopPropagation(); visualizeFailure('${f.k}',${f.i})" style="padding:4px 8px;font-size:11px">View</button></td>`;
+
+      // Make the entire row clickable to load that example
+      tr.onclick = async function() {
+        els.setSel.value = f.k;
+        state.curSet = f.k;
+        els.idInput.value = f.i + 1; // Display 1-based index
+        state.curId = f.i;
+        await updateView(true); // Skip auto-run to preserve test results
+
+        // Scroll to top to show the loaded example
+        document.querySelector('.main-content').scrollTop = 0;
+      };
+
+      els.failBody.appendChild(tr);
+    }
+    // Don't show "All tests passed!" here - it's handled in the testMessage element
+  }
+  
+  // New function to update test info - removed file display
+  function updateTestInfo() {
+    // Function removed - no longer showing file info
+  }
+  
+  // New function to visualize failures
+  window.visualizeFailure = async function(setName, idx) {
+    const ex = state.sets[setName][idx];
+    const result = state.results[setName] ? state.results[setName][idx] : null;
+    
+    els.failureTitle.textContent = `${setName} #${idx}`;
+    renderGrid(els.failInCanvas, ex.input);
+    renderGrid(els.failExCanvas, ex.output);
+    renderGrid(els.failAcCanvas, result && result.actual ? result.actual : [[0]]);
+    
+    els.failureViz.style.display = 'block';
+    
+    // Also switch to develop tab and load this example
+    els.setSel.value = setName;
+    state.curSet = setName;
+    els.idInput.value = idx + 1; // Display 1-based index
+    state.curId = idx;
+    await updateView();
+  }
+  
+  // Buttons
+  els.runOne.addEventListener('click',runSelected);
+  els.runAll.addEventListener('click',runAll);
+  els.curriculumToggle.addEventListener('click', toggleCurriculumMode);
+  
+  function updateCodeStats(){ 
+    const src = editor ? editor.getValue() : currentCode;
+    const bytes=(new TextEncoder()).encode(src).length; 
+    els.bytes.textContent=bytes; 
+    updateByteDelta();
+  }
+  
+  
+  // Load first task on startup
+  window.addEventListener('load', async () => {
+    // Load reference data (titles and best bytes)
+    await loadReferenceData();
+
+    // Load available code packs and get the latest private pack
+    const latestPack = await loadAvailableCodePacks();
+
+    // Load first task
+    await loadTaskFromFile(1);
+
+    // Load the latest private pack if available, otherwise try jaziv-63-594
+    if (latestPack) {
+      els.codePack.value = latestPack;
+      await loadCodePack(latestPack);
+    } else if (els.codePack.querySelector('option[value="public/jaziv-63-594"]')) {
+      els.codePack.value = 'public/jaziv-63-594';
+      await loadCodePack('public/jaziv-63-594');
+    }
+  });
+  </script>
+</body>
+</html>
