@@ -60,6 +60,7 @@
     
     /* Editor toolbar */
     .editor-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--stroke)}
+    .editor-actions{display:flex;align-items:center;gap:8px}
     .byte-count-display{display:flex;gap:20px;align-items:center}
     .current-bytes{display:flex;align-items:baseline;gap:6px;min-width:120px}
     .byte-value{font-size:24px;font-weight:700;color:#ffffff;min-width:60px;text-align:right}
@@ -208,7 +209,7 @@
                 <span style="font-size:13px;color:var(--fg);font-weight:500">Example:</span>
                 <div style="display:flex;gap:2px;align-items:center">
                   <button id="prevEx" class="nav-btn" style="padding:6px 8px">◀</button>
-                  <input id="idInput" type="number" min="0" max="999" style="width:45px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 4px;font-size:13px" value="0" />
+                  <input id="idInput" type="number" min="1" max="999" style="width:45px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 4px;font-size:13px" value="1" />
                   <button id="nextEx" class="nav-btn" style="padding:6px 8px">▶</button>
                 </div>
               </div>
@@ -245,7 +246,10 @@
                 </div>
                 <div id="byteDelta" class="byte-delta"></div>
               </div>
-              <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
+              <div class="editor-actions">
+                <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
+                <button id="shareBtn" style="background:#4b5563;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#4b5563'">Share link</button>
+              </div>
               <div class="editor-info">
                 <span id="status" class="status-inline"></span>
               </div>
@@ -356,12 +360,23 @@
     taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
     bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
     gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
-    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle')
+    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle'),
+    shareBtn:E('shareBtn')
   };
   
   // ==== Monaco Editor Setup ====
   let editor = null;
   let currentCode = '';
+  let initialCodeParam = null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('code')) {
+      initialCodeParam = params.get('code');
+      currentCode = initialCodeParam;
+    }
+  } catch (err) {
+    console.warn('Failed to parse code from URL:', err);
+  }
   
   // Default solver (Task 047)
   const DEFAULT_CODE=`def p(g):
@@ -399,8 +414,9 @@
   // Initialize Monaco with AMD loader
   require(['vs/editor/editor.main'], function() {
     // Initialize Monaco Editor
+    const startingCode = initialCodeParam !== null ? initialCodeParam : DEFAULT_CODE;
     editor = monaco.editor.create(document.getElementById('monacoEditor'), {
-      value: DEFAULT_CODE,
+      value: startingCode,
       language: 'python',
       theme: 'vs-dark',
       minimap: { enabled: false },
@@ -425,10 +441,17 @@
     // Update code stats when content changes
     editor.onDidChangeModelContent(() => {
       currentCode = editor.getValue();
+      if (state.pendingUrlCode === null) {
+        const hadCodeParam = state.urlCodeParam !== null;
+        state.urlCodeParam = null;
+        if (hadCodeParam && urlSyncEnabled) {
+          updateUrlFromState();
+        }
+      }
       updateCodeStats();
     });
     
-    currentCode = DEFAULT_CODE;
+    currentCode = startingCode;
     updateCodeStats();
   });
   
@@ -493,7 +516,57 @@
   }
   
   // ==== State ====
-  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0};
+  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0,pendingUrlCode:initialCodeParam,urlCodeParam:initialCodeParam};
+  const VALID_GROUPS=['train','test','arc-gen'];
+  let urlSyncEnabled=false;
+
+  function parseUrlState(){
+    const params=new URLSearchParams(window.location.search);
+    const urlState={};
+    const taskParam=params.get('task');
+    if(taskParam!==null){
+      const parsed=parseInt(taskParam,10);
+      if(Number.isInteger(parsed)&&parsed>0) urlState.task=parsed;
+    }
+    const groupParam=params.get('group');
+    if(groupParam&&VALID_GROUPS.includes(groupParam)) urlState.group=groupParam;
+    const exampleParam=params.get('example');
+    if(exampleParam!==null){
+      const parsed=parseInt(exampleParam,10);
+      if(Number.isInteger(parsed)&&parsed>0) urlState.exampleIndex=parsed-1;
+    }
+    if(params.has('code')){
+      urlState.code=params.get('code');
+    }
+    urlState.hasQuery=['task','group','example','code'].some(k=>params.has(k));
+    return urlState;
+  }
+
+  function updateUrlFromState(){
+    if(!urlSyncEnabled||!state.currentTaskId) return;
+    const params=new URLSearchParams(window.location.search);
+    params.set('task',state.currentTaskId);
+    if(state.curSet){
+      params.set('group',state.curSet);
+    } else {
+      params.delete('group');
+    }
+    const arr=state.sets[state.curSet]||[];
+    if(arr.length){
+      params.set('example',state.curId+1);
+    } else {
+      params.delete('example');
+    }
+    if(state.urlCodeParam!==null){
+      params.set('code',state.urlCodeParam);
+    } else {
+      params.delete('code');
+    }
+    const query=params.toString();
+    const newUrl=`${window.location.pathname}${query?`?${query}`:''}${window.location.hash}`;
+    window.history.replaceState(null,'',newUrl);
+  }
+
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
@@ -821,7 +894,7 @@
   }
   
   // Task loading from arc-gen-dataset folder
-  async function loadTaskFromFile(taskId) {
+  async function loadTaskFromFile(taskId, options = {}) {
     const paddedId = String(taskId).padStart(3, '0');
     const url = `arc-gen-dataset/task${paddedId}.json`;
     
@@ -846,8 +919,17 @@
       
       state.sets = sets;
       state.order = Object.keys(sets);
-      state.curSet = state.order[0];
+
+      const requestedSet = options.setName;
+      state.curSet = (requestedSet && sets[requestedSet]) ? requestedSet : state.order[0];
       state.curId = 0;
+
+      if (Number.isInteger(options.exampleIndex)) {
+        const arr = state.sets[state.curSet] || [];
+        const maxIndex = Math.max(arr.length - 1, 0);
+        const clampedIndex = Math.min(Math.max(options.exampleIndex, 0), maxIndex);
+        state.curId = clampedIndex;
+      }
       state.results = {};
       state.fileName = `task${paddedId}.json`;
       state.currentTaskId = taskId;
@@ -894,9 +976,9 @@
       });
       
       els.setSel.value = state.curSet;
-      els.idInput.value = 1; // Display 1-based index
+      els.idInput.value = state.curId + 1; // Display 1-based index
       const arr0 = state.sets[state.curSet] || [];
-      els.idInput.max = Math.max(0, arr0.length - 1);
+      els.idInput.max = Math.max(1, arr0.length);
       // Example count shown in exampleInfo display
 
       clearLog();
@@ -909,8 +991,18 @@
       // Load code for this task if code pack is selected
       await loadCodeForCurrentTask();
       
+      if(typeof state.pendingUrlCode === 'string' && editor && editor.getValue() !== state.pendingUrlCode){
+        editor.setValue(state.pendingUrlCode);
+      }
+      if(typeof state.pendingUrlCode === 'string'){
+        currentCode = state.pendingUrlCode;
+      }
+      state.pendingUrlCode = null;
+
       // Update task info display
       updateTaskInfo(taskId);
+
+      updateUrlFromState();
       
       // Clear the loading status
       setStatus('');
@@ -1011,14 +1103,16 @@
     state.curId = newId;
     els.idInput.value = newId + 1; // Display 1-based index
     await updateView();
+    updateUrlFromState();
   });
-  
+
   els.nextEx.addEventListener('click', async () => {
     const arr = state.sets[state.curSet] || [];
     const newId = Math.min(arr.length - 1, state.curId + 1);
     state.curId = newId;
     els.idInput.value = newId + 1; // Display 1-based index
     await updateView();
+    updateUrlFromState();
   });
   
   // Example ID input change - supports typing and Enter
@@ -1029,16 +1123,18 @@
       if (!isNaN(n) && n >= 0 && n < arr.length) {
         state.curId = n;
         await updateView();
+        updateUrlFromState();
       }
     }
   });
-  
+
   els.idInput.addEventListener('change', async () => {
     const n = parseInt(els.idInput.value, 10) - 1; // Convert to 0-based
     const arr = state.sets[state.curSet] || [];
     if (!isNaN(n) && n >= 0 && n < arr.length) {
       state.curId = n;
       await updateView();
+      updateUrlFromState();
     } else {
       // Reset to current value if invalid
       els.idInput.value = state.curId + 1;
@@ -1050,10 +1146,11 @@
     state.curSet = els.setSel.value;
     const arr = state.sets[state.curSet] || [];
     state.curId = Math.min(state.curId, Math.max(0, arr.length - 1));
-    els.idInput.max = Math.max(0, arr.length - 1);
+    els.idInput.max = Math.max(1, arr.length);
     els.idInput.value = state.curId + 1; // Display 1-based index
     // Example count shown in exampleInfo display
     await updateView();
+    updateUrlFromState();
   });
   
   function getCurrent(){ 
@@ -1247,6 +1344,7 @@
       els.idInput.value=f.i + 1; // Display 1-based index
       state.curId=f.i;
       await updateView(true); // Skip auto-run to preserve test results
+      updateUrlFromState();
       // Auto-scroll to top to show the failed example
       document.querySelector('.main-content').scrollTop = 0;
     }
@@ -1290,6 +1388,7 @@
         els.idInput.value = f.i + 1; // Display 1-based index
         state.curId = f.i;
         await updateView(true); // Skip auto-run to preserve test results
+        updateUrlFromState();
 
         // Scroll to top to show the loaded example
         document.querySelector('.main-content').scrollTop = 0;
@@ -1323,20 +1422,106 @@
     els.idInput.value = idx + 1; // Display 1-based index
     state.curId = idx;
     await updateView();
+    updateUrlFromState();
   }
   
   // Buttons
+  els.shareBtn.addEventListener('click', shareCurrentState);
   els.runOne.addEventListener('click',runSelected);
   els.runAll.addEventListener('click',runAll);
   els.curriculumToggle.addEventListener('click', toggleCurriculumMode);
-  
+
   function updateCodeStats(){ 
     const src = editor ? editor.getValue() : currentCode;
     const bytes=(new TextEncoder()).encode(src).length; 
     els.bytes.textContent=bytes; 
     updateByteDelta();
   }
+
+  async function shareCurrentState(){
+    if(!urlSyncEnabled){
+      setStatus('Please wait for the workspace to finish loading.');
+      setTimeout(() => setStatus(''), 2000);
+      return;
+    }
+
+    const codeToShare = editor ? editor.getValue() : currentCode;
+    currentCode = codeToShare;
+    state.urlCodeParam = codeToShare;
+    state.pendingUrlCode = null;
+    updateUrlFromState();
+    const shareUrl = window.location.href;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setStatus('Share link copied to clipboard.');
+        setTimeout(() => setStatus(''), 2000);
+        return;
+      }
+    } catch (err) {
+      console.warn('Clipboard copy failed, falling back to prompt.', err);
+    }
+
+    window.prompt('Copy this shareable URL:', shareUrl);
+  }
   
+  window.addEventListener('popstate', async () => {
+    if(!urlSyncEnabled) return;
+    const urlState=parseUrlState();
+    const task=urlState.task||1;
+    const options={};
+    if(urlState.group) options.setName=urlState.group;
+    if(Number.isInteger(urlState.exampleIndex)) options.exampleIndex=urlState.exampleIndex;
+
+    const hasCodeParam = Object.prototype.hasOwnProperty.call(urlState,'code');
+    if(hasCodeParam){
+      state.urlCodeParam = urlState.code;
+      state.pendingUrlCode = urlState.code;
+      if(typeof urlState.code === 'string'){
+        currentCode = urlState.code;
+        if(editor && editor.getValue() !== urlState.code){
+          editor.setValue(urlState.code);
+        }
+      }
+    } else {
+      state.urlCodeParam = null;
+      state.pendingUrlCode = null;
+    }
+
+    if(task!==state.currentTaskId){
+      await loadTaskFromFile(task,options);
+      return;
+    }
+
+    if(hasCodeParam){
+      state.pendingUrlCode = null;
+    }
+
+    let needsUpdate=false;
+    if(options.setName && options.setName!==state.curSet && state.sets[options.setName]){
+      state.curSet=options.setName;
+      els.setSel.value=state.curSet;
+      needsUpdate=true;
+    }
+
+    if(Number.isInteger(options.exampleIndex)){
+      const arr=state.sets[state.curSet]||[];
+      const maxIndex=Math.max(arr.length-1,0);
+      const clamped=Math.min(Math.max(options.exampleIndex,0),maxIndex);
+      if(clamped!==state.curId){
+        state.curId=clamped;
+        els.idInput.value=clamped+1;
+        needsUpdate=true;
+      }
+    }
+
+    if(needsUpdate){
+      await updateView();
+      updateUrlFromState();
+    }
+  });
+
   
   // Load first task on startup
   window.addEventListener('load', async () => {
@@ -1346,8 +1531,29 @@
     // Load available code packs and get the latest private pack
     const latestPack = await loadAvailableCodePacks();
 
-    // Load first task
-    await loadTaskFromFile(1);
+    const urlState=parseUrlState();
+    if(Object.prototype.hasOwnProperty.call(urlState,'code')){
+      state.pendingUrlCode = urlState.code;
+      state.urlCodeParam = urlState.code;
+      if(typeof urlState.code === 'string' && editor && editor.getValue() !== urlState.code){
+        editor.setValue(urlState.code);
+      }
+      currentCode = typeof urlState.code === 'string' ? urlState.code : currentCode;
+    } else {
+      state.pendingUrlCode = null;
+      state.urlCodeParam = null;
+    }
+    const taskToLoad=urlState.task||1;
+    const loadOptions={};
+    if(urlState.group) loadOptions.setName=urlState.group;
+    if(Number.isInteger(urlState.exampleIndex)) loadOptions.exampleIndex=urlState.exampleIndex;
+
+    // Load initial task (optionally from URL)
+    await loadTaskFromFile(taskToLoad,loadOptions);
+
+    // Enable URL syncing after initial load
+    urlSyncEnabled=true;
+    if(urlState.hasQuery) updateUrlFromState();
 
     // Load the latest private pack if available, otherwise try jaziv-63-594
     if (latestPack) {
