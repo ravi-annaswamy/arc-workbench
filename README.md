@@ -68,6 +68,8 @@ def p(g):
 - **Task Navigation**: Use ◀/▶ buttons or type task number directly
 - **Example Selection**: Navigate through train/test/arc-gen examples
 - **Grid Size**: Adjust visualization size with the slider
+- **Direct Links**: Add `?task=42&group=test&example=2&code=<url-encoded python>` to open a specific task, dataset group, example (1-based), and prefill the editor
+- **Share Link**: Click "Share link" in the editor toolbar to copy a URL that captures the current task, example, and code
 
 ### Testing
 
