@@ -94,6 +94,9 @@
     button:hover{background:var(--tab-hover)}
     button.primary{background:linear-gradient(90deg,#2563eb,#8b5cf6);border:none}
     button.primary:hover{opacity:.9}
+    .run-all-stop{background:#ef4444!important;color:white!important;border:none!important}
+    .run-all-stop:hover{background:#dc2626!important}
+    .run-all-stop:disabled{background:#ef4444!important;color:white!important;opacity:.8}
     button:disabled{opacity:.55;cursor:not-allowed}
     button:disabled:hover{background:var(--btn)}
     .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -494,6 +497,8 @@
   
   // ==== State ====
   const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0};
+  let runAllInProgress=false;
+  let runAllCancelRequested=false;
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
@@ -1170,91 +1175,148 @@
   }
   
   async function runAll(){
-    await ensurePy();
-    clearLog();
+    if(runAllInProgress){
+      return;
+    }
 
-    // Show progress bar
-    els.progressBar.classList.add('active');
-    els.resSec.style.display = 'none';
-    els.failuresSection.style.display = 'none';
+    runAllInProgress = true;
+    runAllCancelRequested = false;
 
-    const summary=[], fails=[];
-    let stopTesting = false;
+    const prevRunAllText = els.runAll.textContent;
+    const prevRunAllDisabled = els.runAll.disabled;
+    const prevRunOneDisabled = els.runOne.disabled;
+    const hadPrimaryClass = els.runAll.classList.contains('primary');
+    const hadStopClass = els.runAll.classList.contains('run-all-stop');
 
-    // Map set names to progress segments
-    const segmentMap = {
-      'train': els.progressBar.querySelector('.progress-train'),
-      'test': els.progressBar.querySelector('.progress-test'),
-      'arc-gen': els.progressBar.querySelector('.progress-arcgen')
-    };
+    els.runAll.disabled = false;
+    els.runAll.textContent = 'Stop testing';
+    if (hadPrimaryClass) els.runAll.classList.remove('primary');
+    els.runAll.classList.add('run-all-stop');
+    els.runOne.disabled = true;
 
-    for(const k of state.order){
-      if (stopTesting) {
-        // Mark remaining segments as pending
-        const segment = segmentMap[k];
-        if (segment && !segment.classList.contains('complete') && !segment.classList.contains('failed')) {
-          segment.classList.remove('running');
-          segment.classList.add('pending');
+    let cancelled = false;
+
+    try {
+      setStatus('Running full test...');
+      await ensurePy();
+      clearLog();
+
+      // Show progress bar
+      els.progressBar.classList.add('active');
+      els.resSec.style.display = 'none';
+      els.failuresSection.style.display = 'none';
+
+      const summary = [], fails = [];
+      let stopTesting = false;
+
+      // Map set names to progress segments
+      const segmentMap = {
+        'train': els.progressBar.querySelector('.progress-train'),
+        'test': els.progressBar.querySelector('.progress-test'),
+        'arc-gen': els.progressBar.querySelector('.progress-arcgen')
+      };
+
+      outer: for (const k of state.order) {
+        if (runAllCancelRequested) {
+          cancelled = true;
+          break outer;
         }
-        continue;
-      }
 
-      const segment = segmentMap[k];
-      if (segment) {
-        segment.classList.remove('pending', 'complete', 'failed');
-        segment.classList.add('running');
-      }
+        if (stopTesting) {
+          const segment = segmentMap[k];
+          if (segment && !segment.classList.contains('complete') && !segment.classList.contains('failed')) {
+            segment.classList.remove('running');
+            segment.classList.add('pending');
+          }
+          continue;
+        }
 
-      const arr=state.sets[k];
-      const res=[];
-      let passed=0;
-      let i;
-      for(i=0;i<arr.length;i++){
-        const r=await runOne(k,i);
-        res.push(r);
-        if(r.pass) {
-          passed++;
-        } else {
-          fails.push({k,i});
-          // Stop testing on first failure
-          stopTesting = true;
+        const segment = segmentMap[k];
+        if (segment) {
+          segment.classList.remove('pending', 'complete', 'failed');
+          segment.classList.add('running');
+        }
+
+        const arr = state.sets[k];
+        const res = [];
+        let passed = 0;
+        let i;
+        for (i = 0; i < arr.length; i++) {
+          if (runAllCancelRequested) {
+            cancelled = true;
+            stopTesting = true;
+            break;
+          }
+
+          const r = await runOne(k, i);
+          res.push(r);
+          if (r.pass) {
+            passed++;
+          } else {
+            fails.push({ k, i });
+            stopTesting = true;
+            break;
+          }
+        }
+        state.results[k] = res;
+        summary.push({ k, passed, total: stopTesting ? i + 1 : arr.length });
+
+        if (segment) {
+          segment.classList.remove('running');
+          segment.classList.add(passed === res.length ? 'complete' : 'failed');
+        }
+
+        if (runAllCancelRequested) {
+          cancelled = true;
           break;
         }
       }
-      state.results[k]=res;
-      summary.push({k,passed,total: stopTesting ? i+1 : arr.length});
 
-      // Update segment status
-      if (segment) {
-        segment.classList.remove('running');
-        segment.classList.add(passed === res.length ? 'complete' : 'failed');
+      els.resSec.style.display = 'block';
+      drawSummary(summary);
+      drawFailures(fails);
+
+      if (cancelled) {
+        els.testMessage.textContent = 'Testing cancelled.';
+        els.testMessage.style.color = '#f59e0b';
+        els.failuresSection.style.display = 'none';
+      } else if (fails.length) {
+        els.testMessage.textContent = `Testing stopped at first failure: ${fails[0].k} #${fails[0].i + 1}`;
+        els.testMessage.style.color = '#ef4444';
+        els.failuresSection.style.display = 'block';
+
+        const f = fails[0];
+        els.setSel.value = f.k;
+        state.curSet = f.k;
+        els.idInput.value = f.i + 1; // Display 1-based index
+        state.curId = f.i;
+        await updateView(true); // Skip auto-run to preserve test results
+        document.querySelector('.main-content').scrollTop = 0;
+      } else {
+        els.testMessage.textContent = 'All tests passed! 🎉';
+        els.testMessage.style.color = '#22c55e';
+        els.failuresSection.style.display = 'none';
       }
-    }
+    } finally {
+      const wasCancelled = cancelled || runAllCancelRequested;
 
-    // Show results section
-    els.resSec.style.display = 'block';
-    drawSummary(summary);
-    drawFailures(fails);
+      runAllInProgress = false;
+      runAllCancelRequested = false;
 
-    if(fails.length){
-      els.testMessage.textContent = `Testing stopped at first failure: ${fails[0].k} #${fails[0].i + 1}`;
-      els.testMessage.style.color = '#ef4444';
-      els.failuresSection.style.display = 'block';
+      els.runAll.disabled = prevRunAllDisabled;
+      els.runAll.textContent = prevRunAllText;
+      if (hadPrimaryClass) els.runAll.classList.add('primary');
+      if (!hadStopClass) {
+        els.runAll.classList.remove('run-all-stop');
+      }
+      els.runOne.disabled = prevRunOneDisabled;
 
-      const f=fails[0];
-      els.setSel.value=f.k;
-      state.curSet=f.k;
-      els.idInput.value=f.i + 1; // Display 1-based index
-      state.curId=f.i;
-      await updateView(true); // Skip auto-run to preserve test results
-      // Auto-scroll to top to show the failed example
-      document.querySelector('.main-content').scrollTop = 0;
-    }
-    else {
-      els.testMessage.textContent = 'All tests passed! 🎉';
-      els.testMessage.style.color = '#22c55e';
-      els.failuresSection.style.display = 'none';
-      // Don't show status - already shown in test message
+      if (wasCancelled) {
+        setStatus('Testing cancelled.');
+        setTimeout(() => setStatus(''), 2000);
+      } else {
+        setStatus('');
+      }
     }
   }
   
@@ -1327,7 +1389,18 @@
   
   // Buttons
   els.runOne.addEventListener('click',runSelected);
-  els.runAll.addEventListener('click',runAll);
+  els.runAll.addEventListener('click', async () => {
+    if(runAllInProgress){
+      if(!runAllCancelRequested){
+        runAllCancelRequested = true;
+        setStatus('Stopping tests...');
+        els.runAll.textContent = 'Stopping...';
+        els.runAll.disabled = true;
+      }
+      return;
+    }
+    await runAll();
+  });
   els.curriculumToggle.addEventListener('click', toggleCurriculumMode);
   
   function updateCodeStats(){ 
