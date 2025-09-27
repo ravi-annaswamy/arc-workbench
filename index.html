@@ -48,7 +48,7 @@
     .task-navigation{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:8px}
     .task-label{font-size:16px;font-weight:600;color:#ffffff;margin-right:6px}
     .task-input-group{display:flex;gap:2px;align-items:center}
-    #taskInput{width:70px;text-align:center;background:var(--btn);color:#ffffff;font-size:24px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:6px 8px}
+    #taskInput{width:140px;text-align:center;background:var(--btn);color:#ffffff;font-size:24px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:6px 10px}
     .task-title{font-size:28px;font-weight:600;color:#ffffff;letter-spacing:0.5px;margin-bottom:4px}
     .task-hash{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
     
@@ -102,6 +102,7 @@
     .chips{display:flex;gap:8px;flex-wrap:wrap}
     .chip{border:1px solid var(--stroke);background:#101626;color:var(--fg);padding:6px 10px;border-radius:999px;font-size:12px}
     .chip.ok{border-color:#1e7c4a;background:#0b2819}
+    .chip.warn{border-color:#7f6000;background:#2a230b}
     .chip.bad{border-color:#7a1e1e;background:#2a0b0b}
     .list{max-height:180px;overflow:auto;border:1px solid var(--stroke);border-radius:12px}
     table{width:100%;border-collapse:collapse}
@@ -113,10 +114,8 @@
     /* Progress bar styles */
     .progress-bar{display:none;margin:12px 0;height:24px;background:var(--btn);border:1px solid var(--stroke);border-radius:4px;overflow:hidden}
     .progress-bar.active{display:flex}
-    .progress-segment{height:100%;transition:background-color 0.3s;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);position:relative}
-    .progress-train{flex:1;border-right:1px solid var(--stroke)}
-    .progress-test{flex:1;border-right:1px solid var(--stroke)}
-    .progress-arcgen{flex:3}
+    .progress-segment{flex:1;height:100%;transition:background-color 0.3s;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);position:relative}
+    .progress-segment:not(:last-child){border-right:1px solid var(--stroke)}
     .progress-segment.pending{background:var(--btn);color:var(--muted)}
     .progress-segment.running{background:#2563eb;animation:pulse 1s infinite;color:white}
     .progress-segment.complete{background:#22c55e;color:white}
@@ -142,7 +141,13 @@
     <!-- Header -->
     <div class="header" style="display:flex;justify-content:space-between;align-items:center">
       <h1>ARC-AGI Workbench <span>by Ravi Annaswamy</span></h1>
-      <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-right:20px" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
+      <div style="display:flex;align-items:center;gap:12px;margin-right:20px">
+        <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
+          <span>Dataset</span>
+          <select id="datasetSelect" style="background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 10px;font-size:13px"></select>
+        </label>
+        <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -198,11 +203,7 @@
             <div style="display:flex;align-items:center;gap:20px;justify-content:center">
               <label style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:13px;color:var(--fg);font-weight:500">Group:</span>
-                <select id="setSel" style="width:100px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 10px;font-size:13px">
-                  <option value="train">train</option>
-                  <option value="test">test</option>
-                  <option value="arc-gen">arc-gen</option>
-                </select>
+                <select id="setSel" style="width:120px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 10px;font-size:13px"></select>
               </label>
               <div style="display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--stroke);border-right:1px solid var(--stroke)">
                 <span style="font-size:13px;color:var(--fg);font-weight:500">Example:</span>
@@ -266,11 +267,7 @@
               <button id="runAll" class="primary" disabled style="font-weight:700">Test full set</button>
             </div>
             <!-- Progress Bar -->
-            <div id="progressBar" class="progress-bar">
-              <div class="progress-segment progress-train pending" title="train">train</div>
-              <div class="progress-segment progress-test pending" title="test">test</div>
-              <div class="progress-segment progress-arcgen pending" title="arc-gen">arc-gen</div>
-            </div>
+            <div id="progressBar" class="progress-bar"></div>
           </div>
 
           <!-- Results Summary -->
@@ -356,8 +353,320 @@
     taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
     bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
     gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
-    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle')
+    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle'),datasetSelect:E('datasetSelect')
   };
+
+  // ==== Dataset configuration ====
+  const DATASETS = {
+    arcagi1: {
+      id: 'arcagi1',
+      label: 'ARC-AGI',
+      mainTitle: 'ARC-GEN',
+      taskDir: 'arc-gen-dataset',
+      taskFilePrefix: ['task'],
+      taskFileSuffix: '.json',
+      padLengths: [3],
+      codeFilePrefix: ['task'],
+      codeFileSuffix: '.py',
+      defaultTask: 1,
+      sets: [
+        { id: 'train', label: 'train', weight: 1 },
+        { id: 'test', label: 'test', weight: 1 },
+        { id: 'arc-gen', label: 'arc-gen', weight: 1.5 }
+      ],
+      metadata: {
+        titles: 'task-reference-data/arcgen_titles.json',
+        bestBytes: 'leader-board/best-solution-bytes.json'
+      }
+    },
+    arcagi2: {
+      id: 'arcagi2',
+      label: 'ARC-AGI 2',
+      mainTitle: 'ARC-AGI 2',
+      taskDir: 'arc-agi2-dataset',
+      taskFilePrefix: ['task'],
+      taskFileSuffix: '.json',
+      padLengths: [3, 4],
+      codeFilePrefix: ['task'],
+      codeFileSuffix: '.py',
+      defaultTask: 1,
+      sets: [
+        { id: 'train', label: 'train', weight: 1 },
+        { id: 'test', label: 'test', weight: 1 },
+        { id: 'challenge', label: 'challenge', weight: 1.5 }
+      ],
+      metadata: {
+        titles: 'task-reference-data/arcagi2_titles.json',
+        bestBytes: 'leader-board/arcagi2-best-solution-bytes.json'
+      }
+    }
+  };
+
+  const datasetCache = {};
+
+  const toArray = (value, fallback=[]) => {
+    if (Array.isArray(value)) return value;
+    if (value === undefined || value === null) return [...fallback];
+    return [value];
+  };
+
+  function getActiveDataset() {
+    return DATASETS[state.datasetId] || DATASETS.arcagi1;
+  }
+
+  function getSetConfig(setId, datasetConfig = getActiveDataset()) {
+    if (!datasetConfig || !datasetConfig.sets) return null;
+    return datasetConfig.sets.find(s => s.id === setId) || null;
+  }
+
+  function getSetLabel(setId, datasetConfig = getActiveDataset()) {
+    const cfg = getSetConfig(setId, datasetConfig);
+    return cfg ? cfg.label : setId;
+  }
+
+  function getTaskPathCandidates(taskId, datasetConfig = getActiveDataset()) {
+    const padLengths = toArray(datasetConfig.padLengths || datasetConfig.padLength || 3);
+    const prefixes = toArray(datasetConfig.taskFilePrefix || 'task');
+    const suffix = datasetConfig.taskFileSuffix || '.json';
+    const dir = datasetConfig.taskDir ? datasetConfig.taskDir.replace(/\/+$/, '') : '';
+    const candidates = [];
+
+    for (const pad of padLengths) {
+      const padded = String(taskId).padStart(pad, '0');
+      for (const prefix of prefixes) {
+        const fileName = `${prefix}${padded}${suffix}`;
+        const url = dir ? `${dir}/${fileName}` : fileName;
+        candidates.push({ url, padded, pad, prefix, fileName });
+      }
+    }
+
+    return candidates;
+  }
+
+  function getOrderedSets(availableSets, datasetConfig = getActiveDataset()) {
+    const preferred = datasetConfig.sets ? datasetConfig.sets.map(s => s.id) : [];
+    const order = [];
+    for (const id of preferred) {
+      if (availableSets.includes(id) && !order.includes(id)) {
+        order.push(id);
+      }
+    }
+    for (const id of availableSets) {
+      if (!order.includes(id)) {
+        order.push(id);
+      }
+    }
+    return order;
+  }
+
+  function populateSetSelector(order) {
+    els.setSel.innerHTML = '';
+
+    for (const setId of order) {
+      const option = document.createElement('option');
+      option.value = setId;
+      option.textContent = getSetLabel(setId);
+      option.disabled = !(state.sets[setId] && state.sets[setId].length);
+      els.setSel.appendChild(option);
+    }
+
+    if (!order.length) {
+      els.setSel.disabled = true;
+    } else {
+      els.setSel.disabled = false;
+      if (order.includes(state.curSet)) {
+        els.setSel.value = state.curSet;
+      } else {
+        els.setSel.value = order[0];
+      }
+    }
+  }
+
+  function getTaskLookupValue(map, paddedId) {
+    if (!map) return undefined;
+    const numericKey = String(parseInt(paddedId, 10));
+    const candidates = [
+      paddedId,
+      `task${paddedId}`,
+      `Task${paddedId}`,
+      numericKey
+    ];
+    for (const key of candidates) {
+      if (key && key in map) {
+        return map[key];
+      }
+    }
+    return undefined;
+  }
+
+  function buildLookupMaps(entries) {
+    const hashLookup = {};
+    const titleLookup = {};
+    if (!entries) return { hashLookup, titleLookup };
+
+    for (const [key, value] of Object.entries(entries)) {
+      const taskId = parseInt(key, 10);
+      if (!Number.isFinite(taskId)) continue;
+      if (!value || typeof value !== 'object') continue;
+
+      if (value.hash) {
+        const hashKey = String(value.hash).toLowerCase();
+        if (!(hashKey in hashLookup)) {
+          hashLookup[hashKey] = taskId;
+        }
+      }
+      if (value.title) {
+        const titleKey = String(value.title).toLowerCase();
+        if (!(titleKey in titleLookup)) {
+          titleLookup[titleKey] = taskId;
+        }
+      }
+    }
+
+    return { hashLookup, titleLookup };
+  }
+
+  function renderProgressBar(order) {
+    els.progressBar.innerHTML = '';
+    state.progressSegments = {};
+
+    if (!order.length) {
+      els.progressBar.classList.remove('active');
+      return;
+    }
+
+    const datasetConfig = getActiveDataset();
+
+    for (const setId of order) {
+      const segment = document.createElement('div');
+      segment.className = 'progress-segment pending';
+      segment.dataset.set = setId;
+      const setCfg = getSetConfig(setId, datasetConfig);
+      segment.textContent = getSetLabel(setId, datasetConfig);
+      segment.title = segment.textContent;
+      if (setCfg && setCfg.weight) {
+        segment.style.flex = setCfg.weight;
+      }
+      els.progressBar.appendChild(segment);
+      state.progressSegments[setId] = segment;
+    }
+  }
+
+  function updateMainTitle() {
+    if (state.curriculumMode) return;
+    const cfg = getActiveDataset();
+    els.mainTitle.textContent = cfg.mainTitle || cfg.label || 'ARC-AGI';
+  }
+
+  function resetTaskView() {
+    state.sets = {};
+    state.order = [];
+    state.curSet = '';
+    state.curId = 0;
+    state.results = {};
+    state.progressSegments = {};
+    els.setSel.innerHTML = '';
+    renderProgressBar([]);
+    els.summaryChips.innerHTML = '';
+    els.failBody.innerHTML = '';
+    els.exampleResult.textContent = '';
+    els.resSec.style.display = 'none';
+    els.failuresSection.style.display = 'none';
+    els.testMessage.textContent = '';
+    els.failureViz.style.display = 'none';
+    els.bestBytes.textContent = '--';
+    els.byteDelta.textContent = '';
+    els.byteDelta.className = 'byte-delta';
+    els.taskTitle.textContent = 'Loading...';
+    els.taskHash.textContent = '';
+    els.idInput.value = 0;
+    els.idInput.disabled = true;
+    els.runOne.disabled = true;
+    els.runAll.disabled = true;
+    renderGrid(els.inCanvas, [[0]]);
+    renderGrid(els.exCanvas, [[0]]);
+    renderGrid(els.acCanvas, [[0]]);
+    if (els.exampleInfo) {
+      els.exampleInfo.style.display = 'none';
+    }
+  }
+
+  async function switchDataset(newDatasetId, { force = false } = {}) {
+    const cfg = DATASETS[newDatasetId];
+    if (!cfg) {
+      console.warn('Unknown dataset:', newDatasetId);
+      return;
+    }
+
+    if (!force && state.datasetId === newDatasetId && state.currentTaskId) {
+      return;
+    }
+
+    if (state.curriculumMode) {
+      state.curriculumMode = false;
+      state.curriculumOrder = [];
+      state.curriculumIndex = 0;
+      els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
+    }
+
+    const selector = els.datasetSelect;
+    let loaded = false;
+    if (selector) selector.disabled = true;
+
+    try {
+      state.datasetId = newDatasetId;
+      state.currentTaskId = 0;
+      state.currentTaskFormat = null;
+      state.taskTitles = {};
+      state.bestBytes = {};
+      state.hashLookup = {};
+      state.titleLookup = {};
+
+      resetTaskView();
+      updateMainTitle();
+
+      if (selector && selector.value !== newDatasetId) {
+        selector.value = newDatasetId;
+      }
+
+      setStatus(`Loading ${cfg.label}...`);
+
+      await loadReferenceData(newDatasetId);
+
+      const defaultTask = cfg.defaultTask || 1;
+      loaded = await loadTaskFromFile(defaultTask);
+
+      if (!loaded) {
+        console.warn(`Failed to load default task ${defaultTask} for dataset ${cfg.label}`);
+      }
+    } finally {
+      if (selector) selector.disabled = false;
+    }
+
+    return loaded;
+  }
+
+  function initializeDatasetSelect() {
+    if (!els.datasetSelect) return;
+
+    els.datasetSelect.innerHTML = '';
+
+    const datasetEntries = Object.values(DATASETS);
+    for (const cfg of datasetEntries) {
+      const option = document.createElement('option');
+      option.value = cfg.id;
+      option.textContent = cfg.label;
+      els.datasetSelect.appendChild(option);
+    }
+
+    if (!DATASETS[state.datasetId]) {
+      state.datasetId = datasetEntries[0]?.id || null;
+    }
+
+    if (state.datasetId && els.datasetSelect.value !== state.datasetId) {
+      els.datasetSelect.value = state.datasetId;
+    }
+  }
   
   // ==== Monaco Editor Setup ====
   let editor = null;
@@ -493,55 +802,116 @@
   }
   
   // ==== State ====
-  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0};
+  const state={
+    sets:{},
+    order:[],
+    curSet:'',
+    curId:0,
+    results:{},
+    fileName:null,
+    currentTaskId:0,
+    currentCodePack:null,
+    codePackFiles:{},
+    taskTitles:{},
+    bestBytes:{},
+    hashLookup:{},
+    titleLookup:{},
+    curriculumMode:false,
+    curriculumOrder:[],
+    curriculumIndex:0,
+    datasetId:'arcagi1',
+    progressSegments:{},
+    currentTaskFormat:null
+  };
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
   
   // ==== Load Reference Data ====
-  async function loadReferenceData() {
+  async function loadReferenceData(datasetId = state.datasetId) {
+    const cfg = DATASETS[datasetId];
+    if (!cfg) return null;
+
+    if (!datasetCache[datasetId]) {
+      datasetCache[datasetId] = {
+        taskTitles: {},
+        bestBytes: {},
+        hashLookup: {},
+        titleLookup: {},
+        titlesLoaded: false,
+        bestBytesLoaded: false,
+        lookupsBuilt: false
+      };
+    }
+
+    const cache = datasetCache[datasetId];
+
     // Load task titles and hashes
-    try {
-      const titlesResponse = await fetch('task-reference-data/arcgen_titles.json');
-      if (titlesResponse.ok) {
-        const titlesData = await titlesResponse.json();
-        state.taskTitles = titlesData;
-        console.log('Loaded task titles:', Object.keys(titlesData).length);
+    if (!cache.titlesLoaded && cfg.metadata && cfg.metadata.titles) {
+      try {
+        const response = await fetch(cfg.metadata.titles);
+        if (response.ok) {
+          cache.taskTitles = await response.json();
+          cache.titlesLoaded = true;
+          console.log(`[${cfg.label}] Loaded`, Object.keys(cache.taskTitles).length, 'task titles');
+        } else {
+          console.warn(`[${cfg.label}] Task titles not available (${response.status})`);
+        }
+      } catch (error) {
+        console.warn(`[${cfg.label}] Failed to load task titles:`, error.message);
       }
-    } catch (error) {
-      console.error('Failed to load task titles:', error);
     }
-    
+
     // Load best bytes data
-    try {
-      const bytesResponse = await fetch('leader-board/best-solution-bytes.json');
-      if (bytesResponse.ok) {
-        const bytesData = await bytesResponse.json();
-        state.bestBytes = bytesData.task_lookup || {};
-        console.log('Loaded best bytes data:', Object.keys(state.bestBytes).length);
+    if (!cache.bestBytesLoaded && cfg.metadata && cfg.metadata.bestBytes) {
+      try {
+        const response = await fetch(cfg.metadata.bestBytes);
+        if (response.ok) {
+          const data = await response.json();
+          cache.bestBytes = data.task_lookup || data || {};
+          cache.bestBytesLoaded = true;
+          console.log(`[${cfg.label}] Loaded`, Object.keys(cache.bestBytes).length, 'best-byte entries');
+        } else {
+          console.warn(`[${cfg.label}] Best-byte data not available (${response.status})`);
+        }
+      } catch (error) {
+        console.warn(`[${cfg.label}] Failed to load best-byte data:`, error.message);
       }
-    } catch (error) {
-      console.error('Failed to load best bytes:', error);
     }
+
+    if (!cache.lookupsBuilt) {
+      const lookups = buildLookupMaps(cache.taskTitles);
+      cache.hashLookup = lookups.hashLookup;
+      cache.titleLookup = lookups.titleLookup;
+      cache.lookupsBuilt = true;
+    }
+
+    if (datasetId === state.datasetId) {
+      state.taskTitles = cache.taskTitles || {};
+      state.bestBytes = cache.bestBytes || {};
+      state.hashLookup = cache.hashLookup || {};
+      state.titleLookup = cache.titleLookup || {};
+    }
+
+    return cache;
   }
   
   // Update task info display
   function updateTaskInfo(taskId) {
-    const paddedId = String(taskId).padStart(3, '0');
-    
-    // Update title and hash
-    if (state.taskTitles[paddedId]) {
-      const info = state.taskTitles[paddedId];
-      els.taskTitle.textContent = info.title || 'Unknown';
+    const paddedId = state.currentTaskFormat?.padded || String(taskId).padStart(3, '0');
+
+    const info = getTaskLookupValue(state.taskTitles, paddedId);
+    if (info) {
+      els.taskTitle.textContent = info.title || `Task ${taskId}`;
       els.taskHash.textContent = info.hash || '';
     } else {
       els.taskTitle.textContent = `Task ${taskId}`;
       els.taskHash.textContent = '';
     }
-    
-    // Update best bytes
-    if (state.bestBytes[paddedId]) {
-      els.bestBytes.textContent = state.bestBytes[paddedId];
+
+    const bestBytesValue = getTaskLookupValue(state.bestBytes, paddedId);
+    if (bestBytesValue !== undefined) {
+      els.bestBytes.textContent = bestBytesValue;
       updateByteDelta();
     } else {
       els.bestBytes.textContent = '--';
@@ -553,11 +923,13 @@
   // Update byte count delta
   function updateByteDelta() {
     const currentBytes = parseInt(els.bytes.textContent) || 0;
-    const paddedId = String(state.currentTaskId).padStart(3, '0');
-    const bestBytes = state.bestBytes[paddedId];
+    const paddedId = state.currentTaskFormat?.padded || String(state.currentTaskId).padStart(3, '0');
+    const bestBytes = getTaskLookupValue(state.bestBytes, paddedId);
     
-    if (bestBytes && currentBytes > 0) {
-      const delta = currentBytes - bestBytes;
+    const bestBytesValue = bestBytes !== undefined ? Number(bestBytes) : undefined;
+
+    if (bestBytesValue !== undefined && !Number.isNaN(bestBytesValue) && currentBytes > 0) {
+      const delta = currentBytes - bestBytesValue;
       if (delta === 0) {
         els.byteDelta.textContent = '✓ Optimal';
         els.byteDelta.className = 'byte-delta better';
@@ -572,6 +944,149 @@
       els.byteDelta.textContent = '';
       els.byteDelta.className = 'byte-delta';
     }
+  }
+
+  function resolveTaskIdentifierForDataset(identifier, datasetId, { allowNumeric = true, cache = null } = {}) {
+    if (identifier === undefined || identifier === null) return null;
+    let raw = String(identifier).trim();
+    if (!raw) return null;
+
+    const config = DATASETS[datasetId];
+    if (!config) return null;
+
+    const taskMatch = raw.match(/^task(\d+)$/i);
+    if (taskMatch) {
+      raw = taskMatch[1];
+    }
+
+    const isNumeric = /^\d+$/.test(raw);
+    const lookupCache = cache || datasetCache[datasetId] || {};
+    const titles = datasetId === state.datasetId ? state.taskTitles : (lookupCache.taskTitles || {});
+
+    if (allowNumeric && isNumeric) {
+      const numericId = parseInt(raw, 10);
+      if (Number.isFinite(numericId) && numericId > 0) {
+        let numericAllowed = false;
+        if (!titles || Object.keys(titles).length === 0) {
+          numericAllowed = true;
+        } else {
+          const padLengths = new Set([3, 4]);
+          toArray(config.padLengths || config.padLength || []).forEach(p => padLengths.add(p));
+          for (const pad of padLengths) {
+            const padded = String(numericId).padStart(p, '0');
+            if (titles[padded] || titles[`task${padded}`] || titles[String(numericId)]) {
+              numericAllowed = true;
+              break;
+            }
+          }
+        }
+        if (numericAllowed) {
+          return {
+            taskId: numericId,
+            displayValue: raw,
+            type: 'number',
+            datasetId
+          };
+        }
+      }
+    }
+
+    const hashLookup = datasetId === state.datasetId ? state.hashLookup : (lookupCache.hashLookup || {});
+    const titleLookup = datasetId === state.datasetId ? state.titleLookup : (lookupCache.titleLookup || {});
+    const lower = raw.toLowerCase();
+
+    if (hashLookup && lower in hashLookup) {
+      return {
+        taskId: hashLookup[lower],
+        displayValue: identifier,
+        type: 'hash',
+        datasetId
+      };
+    }
+
+    if (titleLookup && lower in titleLookup) {
+      return {
+        taskId: titleLookup[lower],
+        displayValue: identifier,
+        type: 'title',
+        datasetId
+      };
+    }
+
+    return null;
+  }
+
+  function indicateTaskInputError(message) {
+    if (message) {
+      setStatus(message);
+    }
+    els.taskInput.style.borderColor = '#ef4444';
+    els.taskInput.style.boxShadow = '0 0 6px #ef4444';
+    setTimeout(() => {
+      els.taskInput.style.borderColor = '';
+      els.taskInput.style.boxShadow = '';
+    }, 1000);
+  }
+
+  async function goToTask(identifier, { fromUserInput = false } = {}) {
+    const rawValue = identifier === undefined || identifier === null ? '' : String(identifier);
+    const trimmed = rawValue.trim();
+    if (!trimmed) {
+      indicateTaskInputError('Enter a task number or hash.');
+      return false;
+    }
+
+    const isNumericLike = /^task?\d+$/i.test(trimmed);
+    const allDatasetIds = Object.keys(DATASETS);
+    const searchOrder = [];
+    if (state.datasetId && allDatasetIds.includes(state.datasetId)) {
+      searchOrder.push(state.datasetId);
+    }
+    for (const id of allDatasetIds) {
+      if (!searchOrder.includes(id)) {
+        searchOrder.push(id);
+      }
+    }
+
+    let resolved = null;
+    let targetDatasetId = state.datasetId;
+
+    for (const datasetId of searchOrder) {
+      const cache = await loadReferenceData(datasetId) || datasetCache[datasetId] || {};
+      const lookup = resolveTaskIdentifierForDataset(identifier, datasetId, {
+        allowNumeric: isNumericLike,
+        cache
+      });
+      if (lookup) {
+        resolved = lookup;
+        targetDatasetId = datasetId;
+        break;
+      }
+    }
+
+    if (!resolved) {
+      indicateTaskInputError('Task not found. Enter a number or task hash.');
+      return false;
+    }
+
+    if (targetDatasetId !== state.datasetId) {
+      await switchDataset(targetDatasetId, { force: true });
+    }
+
+    const displayValue = fromUserInput ? resolved.displayValue : undefined;
+
+    if (resolved.taskId === state.currentTaskId && targetDatasetId === state.datasetId) {
+      if (fromUserInput && displayValue !== undefined) {
+        els.taskInput.value = displayValue;
+      }
+      return true;
+    }
+
+    const success = await loadTaskFromFile(resolved.taskId, { inputDisplayValue: displayValue });
+    if (success && fromUserInput && displayValue !== undefined) {
+      els.taskInput.value = displayValue;
+    }
+    return success;
   }
   
   // ==== Code Pack Management ====
@@ -742,18 +1257,49 @@
   async function loadCodeForCurrentTask() {
     if (!state.currentCodePack || !state.currentTaskId) return;
 
-    const paddedId = String(state.currentTaskId).padStart(3, '0');
-    const fileName = `task${paddedId}.py`;
+    const cfg = getActiveDataset();
 
-    if (state.codePackFiles[fileName]) {
-      if (editor) {
-        editor.setValue(state.codePackFiles[fileName]);
-        // Don't show status for code loading
-        // Auto-run the test when code is loaded
-        await updateView();
+    const padCandidates = [];
+    if (state.currentTaskFormat && state.currentTaskFormat.pad) {
+      padCandidates.push(state.currentTaskFormat.pad);
+    }
+    const configPads = toArray(cfg.codePadLengths || cfg.codePadLength || cfg.padLengths || cfg.padLength || 3);
+    for (const pad of configPads) {
+      if (!padCandidates.includes(pad)) {
+        padCandidates.push(pad);
       }
+    }
+
+    let prefixCandidates = toArray(cfg.codeFilePrefix);
+    if (!prefixCandidates.length) {
+      if (state.currentTaskFormat && state.currentTaskFormat.prefix) {
+        prefixCandidates = [state.currentTaskFormat.prefix];
+      } else {
+        prefixCandidates = toArray(cfg.taskFilePrefix || 'task');
+      }
+    }
+
+    const suffix = cfg.codeFileSuffix || '.py';
+    let selected = null;
+
+    for (const pad of padCandidates) {
+      const padded = String(state.currentTaskId).padStart(pad, '0');
+      for (const prefix of prefixCandidates) {
+        const name = `${prefix}${padded}${suffix}`;
+        if (state.codePackFiles[name]) {
+          selected = { name, content: state.codePackFiles[name] };
+          break;
+        }
+      }
+      if (selected) break;
+    }
+
+    if (selected && editor) {
+      editor.setValue(selected.content);
+      // Auto-run the test when code is loaded
+      await updateView();
     } else {
-      console.log(`No code found for ${fileName} in current pack`);
+      console.log(`No code found for task ${state.currentTaskId} in current pack`);
     }
   }
 
@@ -766,9 +1312,12 @@
     // Create array of tasks with their code lengths
     const tasksWithLengths = [];
     for (const [fileName, code] of Object.entries(state.codePackFiles)) {
-      const match = fileName.match(/task(\d{3})\.py/);
+      const match = fileName.match(/(\d+)/);
       if (match) {
-        const taskId = parseInt(match[1]);
+        const taskId = parseInt(match[1], 10);
+        if (Number.isNaN(taskId)) {
+          continue;
+        }
         tasksWithLengths.push({
           taskId: taskId,
           length: code.length,
@@ -798,7 +1347,8 @@
 
       // Update UI
       els.curriculumToggle.textContent = 'Choose Task Sequence';
-      els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#22c55e">Curriculum</span>';
+      const datasetLabel = getActiveDataset().label || 'ARC-AGI';
+      els.mainTitle.innerHTML = `${datasetLabel} <span style="color:#22c55e">Curriculum</span>`;
 
       // Find current task in curriculum order
       const currentIndex = state.curriculumOrder.indexOf(state.currentTaskId);
@@ -814,45 +1364,80 @@
 
       // Update UI
       els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
-      els.mainTitle.innerHTML = 'ARC-GEN';
+      updateMainTitle();
 
       // Stay on current task
     }
   }
   
-  // Task loading from arc-gen-dataset folder
-  async function loadTaskFromFile(taskId) {
-    const paddedId = String(taskId).padStart(3, '0');
-    const url = `arc-gen-dataset/task${paddedId}.json`;
-    
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Task ${taskId} not found`);
+  // Task loading helper (supports multiple ARC datasets)
+  async function loadTaskFromFile(taskId, options = {}) {
+    const { inputDisplayValue } = options;
+    const datasetConfig = getActiveDataset();
+    const candidates = getTaskPathCandidates(taskId, datasetConfig);
+
+    if (!candidates.length) {
+      setStatus(`Dataset ${datasetConfig.label} has no task path configuration`);
+      return false;
+    }
+
+    let taskJson = null;
+    let usedCandidate = null;
+
+    for (const candidate of candidates) {
+      try {
+        const response = await fetch(candidate.url);
+        if (response.ok) {
+          taskJson = await response.json();
+          usedCandidate = candidate;
+          break;
+        }
+
+        console.warn(`Task ${taskId} not found at ${candidate.url} (${response.status})`);
+      } catch (error) {
+        console.warn(`Failed to fetch ${candidate.url}:`, error.message);
       }
-      
-      const json = await response.json();
-      
-      // Process the task data
+    }
+
+    if (!taskJson) {
+      setStatus(`Error loading task ${taskId}: file not found for ${datasetConfig.label}`);
+
+      els.taskInput.style.borderColor = '#ef4444';
+      els.taskInput.style.boxShadow = '0 0 6px #ef4444';
+      setTimeout(() => {
+        els.taskInput.style.borderColor = '';
+        els.taskInput.style.boxShadow = '';
+      }, 1000);
+
+      return false;
+    }
+
+    try {
       const sets = {};
-      ['train', 'test', 'arc-gen'].forEach(k => {
-        if (Array.isArray(json[k])) sets[k] = json[k];
-      });
-      
+      for (const [key, value] of Object.entries(taskJson)) {
+        if (Array.isArray(value)) {
+          sets[key] = value;
+        }
+      }
+
       if (!Object.keys(sets).length) {
         setStatus(`Task ${taskId}: No valid data found`);
         return false;
       }
-      
+
+      const availableKeys = Object.keys(sets);
+      const orderedKeys = getOrderedSets(availableKeys, datasetConfig);
+      const firstNonEmpty = orderedKeys.find(id => (sets[id] || []).length) || orderedKeys[0] || '';
+
       state.sets = sets;
-      state.order = Object.keys(sets);
-      state.curSet = state.order[0];
+      state.order = orderedKeys;
+      state.curSet = firstNonEmpty || '';
       state.curId = 0;
       state.results = {};
-      state.fileName = `task${paddedId}.json`;
+      state.fileName = usedCandidate ? usedCandidate.url : null;
       state.currentTaskId = taskId;
+      state.currentTaskFormat = usedCandidate || null;
 
-      // Update curriculum index if in curriculum mode
       if (state.curriculumMode && state.curriculumOrder.length > 0) {
         const index = state.curriculumOrder.indexOf(taskId);
         if (index >= 0) {
@@ -860,7 +1445,9 @@
         }
       }
 
-      // Clear test results when switching tasks
+      populateSetSelector(state.order);
+      renderProgressBar(state.order);
+
       els.summaryChips.innerHTML = '';
       els.failBody.innerHTML = '';
       els.exampleResult.textContent = '';
@@ -872,13 +1459,18 @@
       els.failuresSection.style.display = 'none';
       els.testMessage.textContent = '';
 
-      // Update UI - show just the number for cleaner display
-      els.taskInput.value = taskId;
-      els.setSel.disabled = false;
-      els.idInput.disabled = false;
-      els.runOne.disabled = false;
-      els.runAll.disabled = false;
-      
+      // Update UI
+      const displayValue = inputDisplayValue !== undefined ? inputDisplayValue : taskId;
+      els.taskInput.value = typeof displayValue === 'number' ? displayValue : String(displayValue);
+
+      const currentSet = state.curSet ? state.sets[state.curSet] || [] : [];
+      els.idInput.value = currentSet.length ? 1 : 0;
+      els.idInput.max = Math.max(0, currentSet.length - 1);
+      els.idInput.disabled = !state.curSet || !currentSet.length;
+      els.setSel.disabled = !state.order.length;
+      els.runOne.disabled = !state.curSet || !currentSet.length;
+      els.runAll.disabled = !state.order.length;
+
       // Visual feedback - brief flash of success
       els.taskInput.style.borderColor = '#22c55e';
       els.taskInput.style.boxShadow = '0 0 6px #22c55e';
@@ -886,47 +1478,46 @@
         els.taskInput.style.borderColor = '';
         els.taskInput.style.boxShadow = '';
       }, 300);
-      
-      // Update select options
-      [...els.setSel.options].forEach(o => {
-        o.disabled = !sets[o.value];
-        if (o.disabled && o.selected) o.selected = false;
-      });
-      
-      els.setSel.value = state.curSet;
-      els.idInput.value = 1; // Display 1-based index
-      const arr0 = state.sets[state.curSet] || [];
-      els.idInput.max = Math.max(0, arr0.length - 1);
-      // Example count shown in exampleInfo display
+
+      updateMainTitle();
 
       clearLog();
-      log(`Loaded task ${taskId} (${state.fileName})`);
-      await updateView();
+      const fileDisplay = state.fileName ? state.fileName : 'inline data';
+      log(`Loaded task ${taskId} (${fileDisplay})`);
+
+      if (state.curSet && currentSet.length) {
+        els.setSel.value = state.curSet;
+        await updateView();
+      } else {
+        renderGrid(els.inCanvas, [[0]]);
+        renderGrid(els.exCanvas, [[0]]);
+        renderGrid(els.acCanvas, [[0]]);
+        els.exampleInfo.style.display = 'none';
+      }
+
       drawSummary();
-      // drawFailures([]); // Don't pre-fill the failure list
       updateTestInfo();
-      
+
       // Load code for this task if code pack is selected
       await loadCodeForCurrentTask();
-      
+
       // Update task info display
       updateTaskInfo(taskId);
-      
+
       // Clear the loading status
       setStatus('');
-      
+
       return true;
     } catch (error) {
       setStatus(`Error loading task ${taskId}: ${error.message}`);
-      
-      // Visual feedback for error
+
       els.taskInput.style.borderColor = '#ef4444';
       els.taskInput.style.boxShadow = '0 0 6px #ef4444';
       setTimeout(() => {
         els.taskInput.style.borderColor = '';
         els.taskInput.style.boxShadow = '';
       }, 1000);
-      
+
       return false;
     }
   }
@@ -960,19 +1551,29 @@
       canvas.style.height = `${size}px`;
     });
   });
+
+  // Dataset selector
+  if (els.datasetSelect) {
+    els.datasetSelect.addEventListener('change', async () => {
+      const selected = els.datasetSelect.value;
+      await switchDataset(selected);
+    });
+  }
   
   // Task input field - load on Enter or blur
   els.taskInput.addEventListener('keypress', async (e) => {
     if (e.key === 'Enter') {
-      const taskId = parseInt(els.taskInput.value) || 1;
-      await loadTaskFromFile(taskId);
+      e.preventDefault();
+      await goToTask(els.taskInput.value, { fromUserInput: true });
     }
   });
   
   els.taskInput.addEventListener('blur', async () => {
-    const taskId = parseInt(els.taskInput.value);
-    if (taskId && taskId !== state.currentTaskId) {
-      await loadTaskFromFile(taskId);
+    const value = els.taskInput.value.trim();
+    if (!value) return;
+    const resolved = resolveTaskIdentifier(value);
+    if (!resolved || resolved.taskId !== state.currentTaskId) {
+      await goToTask(value, { fromUserInput: true });
     }
   });
   
@@ -1049,10 +1650,12 @@
   els.setSel.addEventListener('change', async () => {
     state.curSet = els.setSel.value;
     const arr = state.sets[state.curSet] || [];
-    state.curId = Math.min(state.curId, Math.max(0, arr.length - 1));
+    const hasExamples = arr.length > 0;
+    state.curId = hasExamples ? Math.min(state.curId, Math.max(0, arr.length - 1)) : 0;
     els.idInput.max = Math.max(0, arr.length - 1);
-    els.idInput.value = state.curId + 1; // Display 1-based index
-    // Example count shown in exampleInfo display
+    els.idInput.value = hasExamples ? state.curId + 1 : 0; // Display 1-based index
+    els.idInput.disabled = !hasExamples;
+    els.runOne.disabled = !hasExamples;
     await updateView();
   });
   
@@ -1076,7 +1679,9 @@
 
     // Update example info display
     if (els.exampleInfo) {
-      els.exampleInfo.textContent = `${state.curSet.toUpperCase()} ${state.curId + 1}/${(state.sets[state.curSet] || []).length}`;
+      const label = getSetLabel(state.curSet);
+      const total = (state.sets[state.curSet] || []).length;
+      els.exampleInfo.textContent = `${label} ${state.curId + 1}/${total}`;
       els.exampleInfo.style.display = 'block';
     }
 
@@ -1110,7 +1715,12 @@
   
   async function runOne(setName, idx){
     await ensurePy(); 
-    const ex=state.sets[setName][idx]; 
+    const examples = state.sets[setName] || [];
+    if (!examples[idx]) {
+      log(`[${setName} #${idx}] Missing example`);
+      return { pass: false, actual: null, error: 'Missing example' };
+    }
+    const ex = examples[idx]; 
     let out,pyIn,pyOut;
     const codeToRun = editor ? editor.getValue() : currentCode;
     try{ 
@@ -1135,6 +1745,10 @@
   }
   
   async function runSelected(){
+    if (!state.curSet || !(state.sets[state.curSet] || []).length) {
+      setStatus('No example selected for testing.');
+      return;
+    }
     // Clear Full test results when running single example
     els.summaryChips.innerHTML = '';
     els.failBody.innerHTML = '';
@@ -1173,6 +1787,12 @@
     await ensurePy();
     clearLog();
 
+    if (!state.order.length) {
+      els.progressBar.classList.remove('active');
+      setStatus('No example sets available for full test.');
+      return;
+    }
+
     // Show progress bar
     els.progressBar.classList.add('active');
     els.resSec.style.display = 'none';
@@ -1182,11 +1802,7 @@
     let stopTesting = false;
 
     // Map set names to progress segments
-    const segmentMap = {
-      'train': els.progressBar.querySelector('.progress-train'),
-      'test': els.progressBar.querySelector('.progress-test'),
-      'arc-gen': els.progressBar.querySelector('.progress-arcgen')
-    };
+    const segmentMap = state.progressSegments || {};
 
     for(const k of state.order){
       if (stopTesting) {
@@ -1205,7 +1821,7 @@
         segment.classList.add('running');
       }
 
-      const arr=state.sets[k];
+      const arr=state.sets[k] || [];
       const res=[];
       let passed=0;
       let i;
@@ -1237,7 +1853,8 @@
     drawFailures(fails);
 
     if(fails.length){
-      els.testMessage.textContent = `Testing stopped at first failure: ${fails[0].k} #${fails[0].i + 1}`;
+      const failSetLabel = getSetLabel(fails[0].k);
+      els.testMessage.textContent = `Testing stopped at first failure: ${failSetLabel} #${fails[0].i + 1}`;
       els.testMessage.style.color = '#ef4444';
       els.failuresSection.style.display = 'block';
 
@@ -1246,6 +1863,11 @@
       state.curSet=f.k;
       els.idInput.value=f.i + 1; // Display 1-based index
       state.curId=f.i;
+      const targetSet = state.sets[state.curSet] || [];
+      const hasExamples = targetSet.length > 0;
+      els.idInput.max = Math.max(0, targetSet.length - 1);
+      els.idInput.disabled = !hasExamples;
+      els.runOne.disabled = !hasExamples;
       await updateView(true); // Skip auto-run to preserve test results
       // Auto-scroll to top to show the failed example
       document.querySelector('.main-content').scrollTop = 0;
@@ -1270,8 +1892,9 @@
     for(const s of arr){ 
       const sp=document.createElement('span'); 
       const ok=s.passed===s.total; 
-      sp.className='chip '+(ok?'ok':(s.passed? '':'bad')); 
-      sp.textContent=`${s.k}: ${s.passed}/${s.total}`; 
+      const hasAny = s.passed>0;
+      sp.className='chip '+(ok?'ok':(hasAny?'warn':'bad')); 
+      sp.textContent=`${getSetLabel(s.k)}: ${s.passed}/${s.total}`; 
       els.summaryChips.appendChild(sp); 
     }
   }
@@ -1281,16 +1904,13 @@
     for(const f of fails){
       const tr=document.createElement('tr');
       tr.style.cursor = 'pointer';
-      tr.innerHTML=`<td>${f.k}</td><td>${f.i}</td><td class="fail">FAIL</td><td><button onclick="event.stopPropagation(); visualizeFailure('${f.k}',${f.i})" style="padding:4px 8px;font-size:11px">View</button></td>`;
+      const setLabel = getSetLabel(f.k);
+      const exampleIndex = f.i + 1;
+      tr.innerHTML=`<td>${setLabel}</td><td>${exampleIndex}</td><td class="fail">FAIL</td><td><button onclick="event.stopPropagation(); visualizeFailure('${f.k}',${f.i},true)" style="padding:4px 8px;font-size:11px">View</button></td>`;
 
       // Make the entire row clickable to load that example
       tr.onclick = async function() {
-        els.setSel.value = f.k;
-        state.curSet = f.k;
-        els.idInput.value = f.i + 1; // Display 1-based index
-        state.curId = f.i;
-        await updateView(true); // Skip auto-run to preserve test results
-
+        await visualizeFailure(f.k, f.i, true);
         // Scroll to top to show the loaded example
         document.querySelector('.main-content').scrollTop = 0;
       };
@@ -1306,11 +1926,12 @@
   }
   
   // New function to visualize failures
-  window.visualizeFailure = async function(setName, idx) {
+  window.visualizeFailure = async function(setName, idx, skipAutoRun = false) {
     const ex = state.sets[setName][idx];
     const result = state.results[setName] ? state.results[setName][idx] : null;
     
-    els.failureTitle.textContent = `${setName} #${idx}`;
+    const label = getSetLabel(setName);
+    els.failureTitle.textContent = `${label} #${idx + 1}`;
     renderGrid(els.failInCanvas, ex.input);
     renderGrid(els.failExCanvas, ex.output);
     renderGrid(els.failAcCanvas, result && result.actual ? result.actual : [[0]]);
@@ -1322,7 +1943,12 @@
     state.curSet = setName;
     els.idInput.value = idx + 1; // Display 1-based index
     state.curId = idx;
-    await updateView();
+    const arr = state.sets[state.curSet] || [];
+    const hasExamples = arr.length > 0;
+    els.idInput.max = Math.max(0, arr.length - 1);
+    els.idInput.disabled = !hasExamples;
+    els.runOne.disabled = !hasExamples;
+    await updateView(skipAutoRun);
   }
   
   // Buttons
@@ -1340,14 +1966,12 @@
   
   // Load first task on startup
   window.addEventListener('load', async () => {
-    // Load reference data (titles and best bytes)
-    await loadReferenceData();
+    initializeDatasetSelect();
+
+    await switchDataset(state.datasetId, { force: true });
 
     // Load available code packs and get the latest private pack
     const latestPack = await loadAvailableCodePacks();
-
-    // Load first task
-    await loadTaskFromFile(1);
 
     // Load the latest private pack if available, otherwise try jaziv-63-594
     if (latestPack) {
