@@ -24,6 +24,7 @@ A simple, yet useful browser-based development environment for solving and testi
 - **📦 Code Pack System**: Load and manage solution sets
 - **🏆 Gamification**: Track your progress against leaderboard best scores
 - **⚡ Fast Testing**: Stop-on-failure mode for efficient debugging
+- **🌐 Dataset Selector**: Switch between the original ARC-GEN set and ARC-AGI 2 tasks
 
 ## 🎯 Quick Start
 
@@ -49,6 +50,15 @@ http://localhost:8000/
 2. Open the repo settings ➜ *Pages* and set **Source** to `Deploy from a branch`, then pick `main` and `/ (root)`.
 3. Save the settings—GitHub Pages will publish the static site at `https://<username>.github.io/<repo>/` in a minute or two.
 4. Visit the published URL; the workbench and datasets load entirely from the static files in this repo.
+
+## 🆕 ARC-AGI 2 Support
+
+The workbench can now load both the classic ARC-GEN dataset and the ARC-AGI 2 benchmark.
+
+- Place ARC-AGI 2 task files under `arc-agi2-dataset/` using the same `taskNNN.json` naming convention (the loader tries 3- and 4-digit zero padding).
+- Optional metadata can live in `task-reference-data/arcagi2_titles.json` and leaderboard data in `leader-board/arcagi2-best-solution-bytes.json`.
+- When those files are present, use the new **Dataset** dropdown in the header to flip between ARC-GEN and ARC-AGI 2 without reloading the page.
+- The task input field accepts either the sequential task number or the original ARC hash (e.g. `00576224`).
 
 ## 📚 User Guide
 
