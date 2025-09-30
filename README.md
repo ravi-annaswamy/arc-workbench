@@ -20,9 +20,10 @@ A simple, yet useful browser-based development environment for solving and testi
 - **Python Execution**: Browser-based Python runtime using Pyodide
 
 ### Advanced Features
-- **🎓 Curriculum Mode**: Learn progressively from simpler to complex solutions
+- **🎓 Curriculum Mode**: Learn progressively from simpler to complex solutions (shortest code first)
+- **🏆 Contest Order**: Tackle hardest problems first (longest code first)
 - **📦 Code Pack System**: Load and manage solution sets
-- **🏆 Gamification**: Track your progress against leaderboard best scores
+- **🎯 Gamification**: Track your progress against leaderboard best scores
 - **⚡ Fast Testing**: Stop-on-failure mode for efficient debugging
 
 ## 🎯 Quick Start
@@ -68,12 +69,21 @@ def p(g):
 - **Test Full Set**: Run all examples with progress tracking
 - **Stop on Failure**: Tests halt at first failure for quick debugging
 
-### Curriculum Mode
+### Task Ordering Modes
 
-Click "Try ARC-AGI Curriculum" to:
-- Sort tasks by solution complexity (code length)
+**Curriculum Mode** - Click "Try ARC-AGI Curriculum":
+- Sort tasks by solution complexity (code length, shortest first)
 - Progress from easier to harder problems
 - Build understanding incrementally
+
+**Contest Order** - Click "Try Contest Order":
+- Sort tasks by solution complexity (code length, longest first)
+- Start with the most challenging problems
+- Ideal for tackling hard problems first or reviewing complex solutions
+
+**Normal Mode** - Click "Choose Task Sequence" to exit:
+- Navigate tasks by number (task001, task002, etc.)
+- Standard sequential access
 
 ## 🎨 Interface Overview
 
@@ -178,10 +188,11 @@ This workbench was created to keep track of my work and I wanted to share it so 
 
 ## 📊 Performance Tips
 
-- Use the curriculum mode to learn progressively
-- Watch the byte counter to optimize solution length
-- Use stop-on-failure for faster debugging
-- Test frequently with "Test current example"
+- **Curriculum Mode**: Learn progressively from simplest to most complex solutions
+- **Contest Order**: Focus on hardest problems first or review complex patterns
+- **Byte Counter**: Watch real-time feedback to optimize solution length
+- **Stop-on-Failure**: Enable fast debugging by halting at first failed test
+- **Quick Testing**: Use "Test current example" for rapid iteration
 
 ## 🐛 Troubleshooting
 

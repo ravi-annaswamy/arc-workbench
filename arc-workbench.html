@@ -142,7 +142,10 @@
     <!-- Header -->
     <div class="header" style="display:flex;justify-content:space-between;align-items:center">
       <h1>ARC-AGI Workbench <span>by Ravi Annaswamy</span></h1>
-      <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-right:20px" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
+      <div style="display:flex;gap:8px;margin-right:20px">
+        <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
+        <button id="contestToggle" style="background:#8b5cf6;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">Try Contest Order</button>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -356,7 +359,7 @@
     taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
     bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
     gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
-    curriculumToggle:E('curriculumToggle'),mainTitle:E('mainTitle')
+    curriculumToggle:E('curriculumToggle'),contestToggle:E('contestToggle'),mainTitle:E('mainTitle')
   };
   
   // ==== Monaco Editor Setup ====
@@ -493,7 +496,7 @@
   }
   
   // ==== State ====
-  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,curriculumOrder:[],curriculumIndex:0};
+  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,contestMode:false,sortedOrder:[],sortedIndex:0};
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
@@ -714,9 +717,11 @@
       state.currentCodePack = packName;
       // Don't show status for code pack loading
 
-      // Rebuild curriculum if in curriculum mode
+      // Rebuild sorted order if in curriculum or contest mode
       if (state.curriculumMode) {
-        buildCurriculum();
+        buildSortedOrder(false);
+      } else if (state.contestMode) {
+        buildSortedOrder(true);
       }
       console.log(`Code pack ${packName} loaded with ${fileCount} files`);
       
@@ -747,7 +752,7 @@
 
     if (state.codePackFiles[fileName]) {
       if (editor) {
-        editor.setValue(state.codePackFiles[fileName]);
+        editor.setValue(state.codePackFiles[fileName].trimEnd());
         // Don't show status for code loading
         // Auto-run the test when code is loaded
         await updateView();
@@ -757,8 +762,8 @@
     }
   }
 
-  // Curriculum mode functions
-  function buildCurriculum() {
+  // Sorted mode functions (curriculum/contest)
+  function buildSortedOrder(reverse = false) {
     if (!state.codePackFiles || Object.keys(state.codePackFiles).length === 0) {
       return false;
     }
@@ -777,11 +782,17 @@
       }
     }
 
-    // Sort by code length (ascending - shortest first)
-    tasksWithLengths.sort((a, b) => a.length - b.length);
+    // Sort by code length
+    if (reverse) {
+      // Contest mode: longest first (descending)
+      tasksWithLengths.sort((a, b) => b.length - a.length);
+    } else {
+      // Curriculum mode: shortest first (ascending)
+      tasksWithLengths.sort((a, b) => a.length - b.length);
+    }
 
     // Store the sorted order
-    state.curriculumOrder = tasksWithLengths.map(t => t.taskId);
+    state.sortedOrder = tasksWithLengths.map(t => t.taskId);
 
     return true;
   }
@@ -789,9 +800,15 @@
   function toggleCurriculumMode() {
     if (!state.curriculumMode) {
       // Entering curriculum mode
-      if (!buildCurriculum()) {
+      if (!buildSortedOrder(false)) {
         alert('Please load a code pack first to use the curriculum mode.');
         return;
+      }
+
+      // Exit contest mode if active
+      if (state.contestMode) {
+        state.contestMode = false;
+        els.contestToggle.textContent = 'Try Contest Order';
       }
 
       state.curriculumMode = true;
@@ -800,13 +817,13 @@
       els.curriculumToggle.textContent = 'Choose Task Sequence';
       els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#22c55e">Curriculum</span>';
 
-      // Find current task in curriculum order
-      const currentIndex = state.curriculumOrder.indexOf(state.currentTaskId);
-      state.curriculumIndex = currentIndex >= 0 ? currentIndex : 0;
+      // Find current task in sorted order
+      const currentIndex = state.sortedOrder.indexOf(state.currentTaskId);
+      state.sortedIndex = currentIndex >= 0 ? currentIndex : 0;
 
       // Load first task in curriculum
-      if (state.curriculumOrder.length > 0) {
-        loadTaskFromFile(state.curriculumOrder[0]);
+      if (state.sortedOrder.length > 0) {
+        loadTaskFromFile(state.sortedOrder[0]);
       }
     } else {
       // Exiting curriculum mode
@@ -814,6 +831,46 @@
 
       // Update UI
       els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
+      els.mainTitle.innerHTML = 'ARC-GEN';
+
+      // Stay on current task
+    }
+  }
+
+  function toggleContestMode() {
+    if (!state.contestMode) {
+      // Entering contest mode
+      if (!buildSortedOrder(true)) {
+        alert('Please load a code pack first to use the contest order.');
+        return;
+      }
+
+      // Exit curriculum mode if active
+      if (state.curriculumMode) {
+        state.curriculumMode = false;
+        els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
+      }
+
+      state.contestMode = true;
+
+      // Update UI
+      els.contestToggle.textContent = 'Choose Task Sequence';
+      els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#8b5cf6">Contest Order</span>';
+
+      // Find current task in sorted order
+      const currentIndex = state.sortedOrder.indexOf(state.currentTaskId);
+      state.sortedIndex = currentIndex >= 0 ? currentIndex : 0;
+
+      // Load first task in contest order
+      if (state.sortedOrder.length > 0) {
+        loadTaskFromFile(state.sortedOrder[0]);
+      }
+    } else {
+      // Exiting contest mode
+      state.contestMode = false;
+
+      // Update UI
+      els.contestToggle.textContent = 'Try Contest Order';
       els.mainTitle.innerHTML = 'ARC-GEN';
 
       // Stay on current task
@@ -852,11 +909,11 @@
       state.fileName = `task${paddedId}.json`;
       state.currentTaskId = taskId;
 
-      // Update curriculum index if in curriculum mode
-      if (state.curriculumMode && state.curriculumOrder.length > 0) {
-        const index = state.curriculumOrder.indexOf(taskId);
+      // Update sorted index if in curriculum or contest mode
+      if ((state.curriculumMode || state.contestMode) && state.sortedOrder.length > 0) {
+        const index = state.sortedOrder.indexOf(taskId);
         if (index >= 0) {
-          state.curriculumIndex = index;
+          state.sortedIndex = index;
         }
       }
 
@@ -978,11 +1035,11 @@
   
   // Task navigation buttons
   els.prevTask.addEventListener('click', async () => {
-    if (state.curriculumMode && state.curriculumOrder.length > 0) {
-      // Navigate in curriculum order
-      if (state.curriculumIndex > 0) {
-        state.curriculumIndex--;
-        await loadTaskFromFile(state.curriculumOrder[state.curriculumIndex]);
+    if ((state.curriculumMode || state.contestMode) && state.sortedOrder.length > 0) {
+      // Navigate in sorted order (curriculum or contest)
+      if (state.sortedIndex > 0) {
+        state.sortedIndex--;
+        await loadTaskFromFile(state.sortedOrder[state.sortedIndex]);
       }
     } else {
       // Normal navigation
@@ -992,11 +1049,11 @@
   });
 
   els.nextTask.addEventListener('click', async () => {
-    if (state.curriculumMode && state.curriculumOrder.length > 0) {
-      // Navigate in curriculum order
-      if (state.curriculumIndex < state.curriculumOrder.length - 1) {
-        state.curriculumIndex++;
-        await loadTaskFromFile(state.curriculumOrder[state.curriculumIndex]);
+    if ((state.curriculumMode || state.contestMode) && state.sortedOrder.length > 0) {
+      // Navigate in sorted order (curriculum or contest)
+      if (state.sortedIndex < state.sortedOrder.length - 1) {
+        state.sortedIndex++;
+        await loadTaskFromFile(state.sortedOrder[state.sortedIndex]);
       }
     } else {
       // Normal navigation
@@ -1329,7 +1386,8 @@
   els.runOne.addEventListener('click',runSelected);
   els.runAll.addEventListener('click',runAll);
   els.curriculumToggle.addEventListener('click', toggleCurriculumMode);
-  
+  els.contestToggle.addEventListener('click', toggleContestMode);
+
   function updateCodeStats(){ 
     const src = editor ? editor.getValue() : currentCode;
     const bytes=(new TextEncoder()).encode(src).length; 
