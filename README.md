@@ -71,26 +71,39 @@ def p(g):
 
 ### Task Ordering Modes
 
-**Curriculum Mode** - Click "Try ARC-AGI Curriculum":
+The workbench offers three task ordering modes that you can cycle through using the arrow button in the header:
+
+**Task Order** (Normal Mode):
+- Navigate tasks by number (task001, task002, etc.)
+- Standard sequential access
+- Default mode on startup
+
+**Curriculum Order**:
 - Sort tasks by solution complexity (code length, shortest first)
 - Progress from easier to harder problems
 - Build understanding incrementally
+- Perfect for learning and progressive mastery
 
-**Contest Order** - Click "Try Contest Order":
+**Contest Order**:
 - Sort tasks by solution complexity (code length, longest first)
 - Start with the most challenging problems
 - Ideal for tackling hard problems first or reviewing complex solutions
 
-**Normal Mode** - Click "Choose Task Sequence" to exit:
-- Navigate tasks by number (task001, task002, etc.)
-- Standard sequential access
+Click the arrow button (▶) next to the mode label in the header to cycle through these modes.
 
 ## 🎨 Interface Overview
 
 ### Layout
-- **Top Section**: Task browser with title, navigation, and grid display
-- **Editor Panel**: Monaco editor with byte counter and test button
-- **Test Panel**: Results summary, progress bar, and failure details
+The interface uses a **portrait mode layout** for optimal code editing and grid visualization:
+
+- **Header**: Mode switcher (Task Order/Curriculum/Contest) and workbench title
+- **Left Panel (62%)**: Monaco editor with code pack selector, byte counter, and test buttons
+- **Right Panel (38%)**:
+  - Task information (title, hash, navigation)
+  - Grid size control and example picker (Group/Example selectors)
+  - Grid visualizations (Input, Expected, Predicted) stacked vertically
+  - PASS/FAIL indicators next to Predicted grid label
+- **Test Results Modal**: Appears as overlay when running full test suite with progress tracking and failure details
 
 ### Grid Colors
 - 0: Black

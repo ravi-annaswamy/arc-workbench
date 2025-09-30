@@ -7,7 +7,8 @@
   <style>
     :root{
       --bg:#0b0d10;--panel:#12151a;--muted:#9aa4b2;--fg:#e6edf3;--acc:#7c3aed;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b;
-      --stroke:#243049;--btn:#0e1116;--tab-active:#1a1f2e;--tab-hover:#151922
+      --stroke:#243049;--btn:#0e1116;--tab-active:#1a1f2e;--tab-hover:#151922;
+      --left-panel-width:62%;--right-panel-width:38%;--grid-max-height:250px;--grid-min-height:100px;--modal-backdrop:rgba(0,0,0,0.75)
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
@@ -19,41 +20,47 @@
     .header h1{margin:0;font-weight:800;letter-spacing:.2px;font-size:18px}
     .header h1 span{color:#00bfff}
 
-    /* Main layout */
-    .main-content{flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0}
-    .top-section{background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;flex-shrink:0;flex-grow:0}
-    .bottom-section{display:flex;flex-shrink:0;height:500px;overflow:hidden}
-    .editor-panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto}
-    .test-panel-container{width:350px;background:var(--panel);border-left:1px solid var(--stroke);overflow-y:auto;display:flex;flex-direction:column}
+    /* Main layout - Portrait mode: Left = Code, Right = Grids */
+    .main-content{flex:1;display:flex;flex-direction:row;overflow:hidden;min-height:0}
+    .left-panel{width:var(--left-panel-width);min-width:600px;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--stroke)}
+    .right-panel{width:var(--right-panel-width);min-width:400px;background:var(--panel);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+    .editor-panel{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+
+    /* Deprecated - keeping for backwards compat during transition */
+    .top-section{display:none}
+    .bottom-section{display:none}
+    .test-panel-container{display:none}
     
     .nav-btn{background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;transition:all .2s}
     .nav-btn:hover{background:var(--tab-hover);border-color:var(--acc)}
     
-    /* Grid container */
-    .grids-container{display:flex;gap:0;justify-content:center;align-items:flex-start;padding-bottom:12px;margin:0 auto}
-    .grids-left{display:flex;gap:12px;padding-right:40px;border-right:2px solid var(--stroke)}
-    .grids-right{padding-left:40px}
-    .grid-item{text-align:center}
-    .grid-label{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .grids-container canvas{width:auto;height:150px;background:#1a1a1a;border:1px solid var(--stroke);border-radius:8px;image-rendering:pixelated;image-rendering:crisp-edges}
-    
-    /* Grid size slider */
-    .grid-size-control{display:flex;align-items:center;gap:10px;margin-bottom:8px;justify-content:center}
-    .grid-size-slider{width:150px}
-    
-    
-    /* Task info display */
-    .task-info-display{padding:12px 20px;text-align:center}
-    .main-title{font-size:22px;font-weight:800;color:#ffffff;margin-bottom:8px;letter-spacing:1px}
-    .task-navigation{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:8px}
-    .task-label{font-size:16px;font-weight:600;color:#ffffff;margin-right:6px}
+    /* Grid container - Vertical stack in right panel */
+    .grids-container{display:flex;flex-direction:column;gap:8px;align-items:center;padding:8px 12px}
+    .grid-item{text-align:center;width:100%;position:relative}
+    .grid-label{font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .grid-item canvas{width:auto;max-width:100%;background:#1a1a1a;border:1px solid var(--stroke);border-radius:6px;image-rendering:pixelated;image-rendering:crisp-edges}
+
+    /* Deprecated grid layout classes */
+    .grids-left{display:none}
+    .grids-right{display:none}
+
+    /* Grid size slider - Combined with example picker */
+    .grid-size-control{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--stroke)}
+    .grid-size-slider{width:80px}
+    .example-selector-compact{display:flex;align-items:center;gap:8px;font-size:11px}
+
+    /* Task info display - Compact version for right panel */
+    .task-info-display{padding:8px 12px;border-bottom:1px solid var(--stroke)}
+    .main-title{font-size:20px;font-weight:800;color:#ffffff;margin-bottom:6px;letter-spacing:0.5px;text-align:center}
+    .task-navigation{display:flex;justify-content:center;align-items:center;gap:4px;padding:6px 8px;background:var(--btn);border-radius:6px}
+    .task-label{font-size:13px;font-weight:600;color:var(--muted);margin-right:3px}
     .task-input-group{display:flex;gap:2px;align-items:center}
-    #taskInput{width:70px;text-align:center;background:var(--btn);color:#ffffff;font-size:24px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:6px 8px}
-    .task-title{font-size:28px;font-weight:600;color:#ffffff;letter-spacing:0.5px;margin-bottom:4px}
-    .task-hash{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
+    #taskInput{width:55px;text-align:center;background:var(--panel);color:#ffffff;font-size:18px;font-weight:600;border:1px solid var(--stroke);border-radius:6px;padding:4px 6px}
+    .task-title{font-size:18px;font-weight:600;color:#ffffff;letter-spacing:0.2px;margin-bottom:2px;line-height:1.2}
+    .task-hash{font-size:13px;color:var(--muted);font-family:ui-monospace,monospace}
     
-    /* Example selector bar */
-    .example-selector-bar{}
+    /* Example selector bar - Deprecated, now in grid-size-control */
+    .example-selector-bar{display:none}
     
     /* Code pack bar */
     .code-pack-bar{padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--stroke);display:flex;align-items:center}
@@ -80,7 +87,7 @@
     .editor-actions{display:flex;gap:8px}
     
     /* Monaco container */
-    #monacoEditor{flex:1;min-height:400px}
+    #monacoEditor{flex:1;min-height:400px;margin-top:12px}
     
     /* Test panel */
     .test-info{margin-top:10px;padding:12px;background:var(--btn);border-radius:8px;color:var(--muted);font-size:13px}
@@ -123,11 +130,27 @@
     .progress-segment.failed{background:#ef4444;color:white}
     @keyframes pulse{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
     
-    /* Debug tab placeholder */
-    .debug-placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:16px}
-    
-    @media (max-width:1200px){
-      .test-panel-container{width:300px}
+    /* Test Results Modal */
+    .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--modal-backdrop);z-index:1000;align-items:center;justify-content:center}
+    .modal-overlay.active{display:flex}
+    .modal-content{background:var(--panel);border:1px solid var(--stroke);border-radius:12px;width:90%;max-width:800px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+    .modal-header{padding:16px 20px;border-bottom:1px solid var(--stroke);display:flex;justify-content:space-between;align-items:center}
+    .modal-header h2{margin:0;font-size:18px;font-weight:700}
+    .modal-close{background:var(--btn);border:1px solid var(--stroke);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:14px}
+    .modal-close:hover{background:var(--tab-hover)}
+    .modal-body{padding:20px;overflow-y:auto;flex:1}
+
+    /* Test full set button in right panel */
+    .test-full-set-container{padding:8px;border-top:1px solid var(--stroke)}
+    .test-full-set-container button{width:100%;padding:8px;font-size:13px;font-weight:600}
+
+    @media (max-width:1440px){
+      /* Revert to stacked layout on narrow screens */
+      .main-content{flex-direction:column}
+      .left-panel{width:100%;min-width:0;border-right:none;border-bottom:1px solid var(--stroke)}
+      .right-panel{width:100%;min-width:0}
+      .grids-container{flex-direction:row;flex-wrap:wrap;justify-content:center}
+      .grid-item{width:auto}
     }
     @media (max-width:960px){
       .grids-container{flex-direction:column}
@@ -142,138 +165,140 @@
     <!-- Header -->
     <div class="header" style="display:flex;justify-content:space-between;align-items:center">
       <h1>ARC-AGI Workbench <span>by Ravi Annaswamy</span></h1>
-      <div style="display:flex;gap:8px;margin-right:20px">
-        <button id="curriculumToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Try ARC-AGI Curriculum</button>
-        <button id="contestToggle" style="background:#8b5cf6;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">Try Contest Order</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-right:20px">
+        <span id="orderModeLabel" style="font-size:14px;font-weight:600;color:#e6edf3">Contest Order</span>
+        <button id="orderModeToggle" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:14px;cursor:pointer;transition:all .2s;display:flex;align-items:center" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'" title="Switch order mode">▶</button>
       </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content: Portrait Layout -->
     <div class="main-content">
-      <!-- Top Section: Task Browser -->
-      <div class="top-section">
-        <!-- Task Title and Hash Display -->
-        <div class="task-info-display">
-          <div id="mainTitle" class="main-title">ARC-GEN</div>
-          <div class="task-navigation">
-            <span class="task-label">Task</span>
-            <div class="task-input-group">
-              <button id="prevTask" class="nav-btn">◀</button>
-              <input id="taskInput" type="text" placeholder="1" title="Type task number and press Enter" />
-              <button id="nextTask" class="nav-btn">▶</button>
-            </div>
+      <!-- Left Panel: Code Editor -->
+      <div class="left-panel">
+        <div class="editor-panel">
+          <!-- Code Pack Selector -->
+          <div class="code-pack-bar">
+            <label>
+              <span style="font-size:12px;color:var(--muted)">Code Pack:</span>
+              <select id="codePack" style="margin-left:8px;width:180px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px">
+                <option value="">None</option>
+              </select>
+            </label>
           </div>
-          <div style="margin-top:10px;text-align:center;">
-            <div id="taskTitle" class="task-title" style="font-size:18px;font-weight:700;color:#ffffff;margin-bottom:6px;">Loading...</div>
-            <div id="taskHash" class="task-hash" style="font-size:11px;color:var(--dim);font-family:ui-monospace,monospace;"></div>
-          </div>
-        </div>
 
-        <!-- Grid Visualizations -->
-        <div style="padding:12px 20px;flex-grow:1;flex-shrink:1;min-height:0;display:flex;flex-direction:column;">
-          <div class="grid-size-control">
-            <span style="font-size:12px;color:var(--muted)">Grid Size:</span>
-            <input type="range" class="grid-size-slider" id="gridSizeSlider" min="100" max="300" value="150" />
-            <span id="gridSizeValue" style="font-size:12px;color:var(--muted)">150px</span>
-          </div>
-          <div class="grids-container">
-            <div class="grids-left">
-              <div class="grid-item">
-                <div class="grid-label">Input</div>
-                <canvas id="inCanvas" width="200" height="200"></canvas>
+          <!-- Editor Toolbar -->
+          <div class="editor-toolbar">
+            <div class="byte-count-display">
+              <div class="current-bytes">
+                <span id="bytes" class="byte-value">0</span>
+                <span class="byte-label">bytes</span>
               </div>
-              <div class="grid-item">
-                <div class="grid-label">Expected</div>
-                <canvas id="exCanvas" width="200" height="200"></canvas>
+              <div class="best-bytes">
+                <span class="best-label">LB Best:</span>
+                <span id="bestBytes" class="best-value">--</span>
               </div>
+              <div id="byteDelta" class="byte-delta"></div>
             </div>
-            <div class="grids-right">
-              <div class="grid-item">
-                <div class="grid-label">Predicted</div>
-                <canvas id="acCanvas" width="200" height="200"></canvas>
-                <div id="exampleResult" style="margin-top:6px;font-size:14px;font-weight:700;height:20px"></div>
-              </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
+              <button id="runAll" class="primary" disabled style="font-weight:600;padding:8px 14px;font-size:14px">Test full set</button>
+            </div>
+            <div class="editor-info">
+              <span id="status" class="status-inline"></span>
             </div>
           </div>
 
-          <!-- Example Selector -->
-          <div class="example-selector-bar" style="background:var(--panel);border-top:1px solid var(--stroke);padding:10px 20px;margin-top:12px;border-radius:8px;">
-            <div style="display:flex;align-items:center;gap:20px;justify-content:center">
-              <label style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:13px;color:var(--fg);font-weight:500">Group:</span>
-                <select id="setSel" style="width:100px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 10px;font-size:13px">
-                  <option value="train">train</option>
-                  <option value="test">test</option>
-                  <option value="arc-gen">arc-gen</option>
-                </select>
-              </label>
-              <div style="display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--stroke);border-right:1px solid var(--stroke)">
-                <span style="font-size:13px;color:var(--fg);font-weight:500">Example:</span>
-                <div style="display:flex;gap:2px;align-items:center">
-                  <button id="prevEx" class="nav-btn" style="padding:6px 8px">◀</button>
-                  <input id="idInput" type="number" min="0" max="999" style="width:45px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:6px 4px;font-size:13px" value="0" />
-                  <button id="nextEx" class="nav-btn" style="padding:6px 8px">▶</button>
-                </div>
-              </div>
-              <div id="exampleInfo" style="font-size:12px;color:var(--success);font-weight:500;padding:4px 8px;background:var(--btn);border-radius:4px;display:none"></div>
-            </div>
-          </div>
+          <!-- Monaco Editor -->
+          <div id="monacoEditor"></div>
         </div>
       </div>
 
-      <!-- Bottom Section: Editor and Testing -->
-      <div class="bottom-section">
-        <!-- Editor Panel -->
-        <div class="editor-panel">
-          <!-- Code Pack Selector -->
-            <div class="code-pack-bar">
-              <label>
-                <span style="font-size:12px;color:var(--muted)">Code Pack:</span>
-                <select id="codePack" style="margin-left:8px;width:180px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px">
-                  <option value="">None</option>
-                </select>
-              </label>
-            </div>
-            
-            <!-- Editor Toolbar -->
-            <div class="editor-toolbar">
-              <div class="byte-count-display">
-                <div class="current-bytes">
-                  <span id="bytes" class="byte-value">0</span>
-                  <span class="byte-label">bytes</span>
-                </div>
-                <div class="best-bytes">
-                  <span class="best-label">LB Best:</span>
-                  <span id="bestBytes" class="best-value">--</span>
-                </div>
-                <div id="byteDelta" class="byte-delta"></div>
-              </div>
-              <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
-              <div class="editor-info">
-                <span id="status" class="status-inline"></span>
+      <!-- Right Panel: Task Info + Grids + Navigation -->
+      <div class="right-panel">
+        <!-- Task Info Display - Title row with navigation -->
+        <div class="task-info-display">
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px;position:relative">
+            <div id="mainTitle" class="main-title" style="margin-bottom:0;position:absolute;left:0">ARC-AGI <span style="color:#8b5cf6">Contest Order</span></div>
+            <div class="task-navigation" style="margin-bottom:0">
+              <span class="task-label">Task</span>
+              <div class="task-input-group">
+                <button id="prevTask" class="nav-btn">◀</button>
+                <input id="taskInput" type="text" placeholder="1" title="Type task number and press Enter" />
+                <button id="nextTask" class="nav-btn">▶</button>
               </div>
             </div>
-
-            <!-- Monaco Editor -->
-            <div style="margin-top:20px">
-              <div id="monacoEditor"></div>
-            </div>
+          </div>
+          <div style="text-align:center">
+            <div id="taskTitle" class="task-title">Loading...</div>
+            <div id="taskHash" class="task-hash"></div>
+          </div>
         </div>
 
-        <!-- Test Panel -->
-        <div class="test-panel-container">
-        <div class="test-panel">
-          <!-- Test Controls -->
-          <div class="section">
-            <div class="row" style="justify-content:center">
-              <button id="runAll" class="primary" disabled style="font-weight:700">Test full set</button>
+        <!-- Grid Size Control + Example Picker -->
+        <div class="grid-size-control">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;color:var(--muted);font-weight:600">Size:</span>
+            <input type="range" class="grid-size-slider" id="gridSizeSlider" min="100" max="300" value="180" />
+            <span id="gridSizeValue" style="font-size:10px;color:var(--muted)">180px</span>
+          </div>
+
+          <div class="example-selector-compact">
+            <label style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;color:var(--muted);font-weight:600">Group:</span>
+              <select id="setSel" style="width:90px;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px 8px;font-size:12px">
+                <option value="train">train</option>
+                <option value="test">test</option>
+                <option value="arc-gen">arc-gen</option>
+              </select>
+            </label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;color:var(--muted);font-weight:600">Example:</span>
+              <div style="display:flex;gap:2px;align-items:center">
+                <button id="prevEx" class="nav-btn" style="padding:4px 6px">◀</button>
+                <input id="idInput" type="number" min="0" max="999" style="width:40px;text-align:center;background:var(--btn);color:var(--fg);border:1px solid var(--stroke);border-radius:6px;padding:4px;font-size:12px" value="0" />
+                <button id="nextEx" class="nav-btn" style="padding:4px 6px">▶</button>
+              </div>
             </div>
-            <!-- Progress Bar -->
-            <div id="progressBar" class="progress-bar">
-              <div class="progress-segment progress-train pending" title="train">train</div>
-              <div class="progress-segment progress-test pending" title="test">test</div>
-              <div class="progress-segment progress-arcgen pending" title="arc-gen">arc-gen</div>
+            <div id="exampleInfo" style="font-size:10px;color:var(--ok);font-weight:600;padding:3px 6px;background:var(--btn);border-radius:4px;display:none"></div>
+          </div>
+
+          <div style="width:80px"></div>
+        </div>
+
+        <!-- Grid Visualizations - Vertical Stack -->
+        <div class="grids-container">
+          <div class="grid-item">
+            <div class="grid-label">Input</div>
+            <canvas id="inCanvas" width="200" height="200"></canvas>
+          </div>
+          <div class="grid-item">
+            <div class="grid-label">Expected</div>
+            <canvas id="exCanvas" width="200" height="200"></canvas>
+          </div>
+          <div class="grid-item">
+            <div class="grid-label">
+              <span>Predicted</span>
+              <span id="exampleResult" style="font-size:12px;font-weight:700"></span>
             </div>
+            <canvas id="acCanvas" width="200" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Results Modal -->
+    <div id="testModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Test Results</h2>
+          <button id="modalClose" class="modal-close">Close</button>
+        </div>
+        <div class="modal-body">
+          <!-- Progress Bar -->
+          <div id="progressBar" class="progress-bar">
+            <div class="progress-segment progress-train pending" title="train">train</div>
+            <div class="progress-segment progress-test pending" title="test">test</div>
+            <div class="progress-segment progress-arcgen pending" title="arc-gen">arc-gen</div>
           </div>
 
           <!-- Results Summary -->
@@ -326,6 +351,7 @@
         </div>
       </div>
     </div>
+
   </div>
 
   <!-- Load JSZip for handling code packs -->
@@ -359,7 +385,8 @@
     taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
     bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
     gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
-    curriculumToggle:E('curriculumToggle'),contestToggle:E('contestToggle'),mainTitle:E('mainTitle')
+    orderModeLabel:E('orderModeLabel'),orderModeToggle:E('orderModeToggle'),mainTitle:E('mainTitle'),
+    testModal:E('testModal'),modalClose:E('modalClose')
   };
   
   // ==== Monaco Editor Setup ====
@@ -441,18 +468,30 @@
   const PAL = {0:'#000000',1:'#2d5be3',2:'#e53935',3:'#22c55e',4:'#facc15',5:'#9e9e9e',6:'#ec4899',7:'#fb8c00',8:'#06b6d4',9:'#8b5e3c'};
   const colorFor = n => PAL[n]||'#000';
   
+  // ==== Dynamic Grid Sizing ====
+  function calculateMaxGridSize() {
+    // Get right panel width for responsive sizing
+    const rightPanel = document.querySelector('.right-panel');
+    if (!rightPanel) return 250; // fallback
+
+    const panelWidth = rightPanel.clientWidth;
+    const maxSize = Math.min(250, panelWidth - 60); // Leave padding
+    return Math.max(100, maxSize);
+  }
+
   // ==== Render grid ====
   function renderGrid(canvas, grid){
-    if(!grid||!grid.length||!grid[0].length){ 
-      const ctx=canvas.getContext('2d'); 
-      ctx.clearRect(0,0,canvas.width,canvas.height); 
-      return; 
+    if(!grid||!grid.length||!grid[0].length){
+      const ctx=canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      return;
     }
     const h=grid.length,w=grid[0].length;
     const gridLineWidth = 1;
     const borderWidth = 2; // Border thickness
     const padding = 6; // Total padding including border
-    const cellSize=Math.max(6,Math.floor(Math.min((300-2*padding)/w,(300-2*padding)/h)));
+    const maxGridSize = calculateMaxGridSize();
+    const cellSize=Math.max(6,Math.floor(Math.min((maxGridSize-2*padding)/w,(maxGridSize-2*padding)/h)));
     const size = cellSize - gridLineWidth;
     
     // Account for grid lines and padding in canvas size
@@ -496,7 +535,7 @@
   }
   
   // ==== State ====
-  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},curriculumMode:false,contestMode:false,sortedOrder:[],sortedIndex:0};
+  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},orderMode:'contest',sortedOrder:[],sortedIndex:0};
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
@@ -558,7 +597,7 @@
     const currentBytes = parseInt(els.bytes.textContent) || 0;
     const paddedId = String(state.currentTaskId).padStart(3, '0');
     const bestBytes = state.bestBytes[paddedId];
-    
+
     if (bestBytes && currentBytes > 0) {
       const delta = currentBytes - bestBytes;
       if (delta === 0) {
@@ -576,7 +615,7 @@
       els.byteDelta.className = 'byte-delta';
     }
   }
-  
+
   // ==== Code Pack Management ====
   async function loadAvailableCodePacks() {
     const publicPacks = [];
@@ -718,13 +757,13 @@
       // Don't show status for code pack loading
 
       // Rebuild sorted order if in curriculum or contest mode
-      if (state.curriculumMode) {
+      if (state.orderMode === 'curriculum') {
         buildSortedOrder(false);
-      } else if (state.contestMode) {
+      } else if (state.orderMode === 'contest') {
         buildSortedOrder(true);
       }
       console.log(`Code pack ${packName} loaded with ${fileCount} files`);
-      
+
       // Load code for current task if available (includes auto-run)
       await loadCodeForCurrentTask();
       
@@ -797,83 +836,48 @@
     return true;
   }
 
-  function toggleCurriculumMode() {
-    if (!state.curriculumMode) {
-      // Entering curriculum mode
-      if (!buildSortedOrder(false)) {
-        alert('Please load a code pack first to use the curriculum mode.');
+  // ==== Order Mode Cycling ====
+  function cycleOrderMode() {
+    const modes = ['normal', 'curriculum', 'contest'];
+    const currentIdx = modes.indexOf(state.orderMode);
+    const nextIdx = (currentIdx + 1) % modes.length;
+    const nextMode = modes[nextIdx];
+
+    // If switching to sorted mode, need code pack
+    if (nextMode !== 'normal') {
+      const reverse = nextMode === 'contest';
+      if (!buildSortedOrder(reverse)) {
+        alert('Please load a code pack first to use sorted order modes.');
         return;
       }
+    }
 
-      // Exit contest mode if active
-      if (state.contestMode) {
-        state.contestMode = false;
-        els.contestToggle.textContent = 'Try Contest Order';
-      }
+    state.orderMode = nextMode;
 
-      state.curriculumMode = true;
-
-      // Update UI
-      els.curriculumToggle.textContent = 'Choose Task Sequence';
+    // Update UI based on mode
+    if (nextMode === 'normal') {
+      els.orderModeLabel.textContent = 'Task Order';
+      els.mainTitle.innerHTML = 'ARC-GEN';
+    } else if (nextMode === 'curriculum') {
+      els.orderModeLabel.textContent = 'Curriculum Order';
       els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#22c55e">Curriculum</span>';
 
-      // Find current task in sorted order
+      // Find current task in sorted order and load first
       const currentIndex = state.sortedOrder.indexOf(state.currentTaskId);
       state.sortedIndex = currentIndex >= 0 ? currentIndex : 0;
-
-      // Load first task in curriculum
       if (state.sortedOrder.length > 0) {
         loadTaskFromFile(state.sortedOrder[0]);
       }
-    } else {
-      // Exiting curriculum mode
-      state.curriculumMode = false;
-
-      // Update UI
-      els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
-      els.mainTitle.innerHTML = 'ARC-GEN';
-
-      // Stay on current task
-    }
-  }
-
-  function toggleContestMode() {
-    if (!state.contestMode) {
-      // Entering contest mode
-      if (!buildSortedOrder(true)) {
-        alert('Please load a code pack first to use the contest order.');
-        return;
-      }
-
-      // Exit curriculum mode if active
-      if (state.curriculumMode) {
-        state.curriculumMode = false;
-        els.curriculumToggle.textContent = 'Try ARC-AGI Curriculum';
-      }
-
-      state.contestMode = true;
-
-      // Update UI
-      els.contestToggle.textContent = 'Choose Task Sequence';
+    } else if (nextMode === 'contest') {
+      els.orderModeLabel.textContent = 'Contest Order';
       els.mainTitle.innerHTML = 'ARC-AGI <span style="color:#8b5cf6">Contest Order</span>';
 
-      // Find current task in sorted order
+      // Find current task in sorted order and load first
       const currentIndex = state.sortedOrder.indexOf(state.currentTaskId);
       state.sortedIndex = currentIndex >= 0 ? currentIndex : 0;
-
-      // Load first task in contest order
       if (state.sortedOrder.length > 0) {
         loadTaskFromFile(state.sortedOrder[0]);
       }
-    } else {
-      // Exiting contest mode
-      state.contestMode = false;
-
-      // Update UI
-      els.contestToggle.textContent = 'Try Contest Order';
-      els.mainTitle.innerHTML = 'ARC-GEN';
-
-      // Stay on current task
     }
   }
   
@@ -910,7 +914,7 @@
       state.currentTaskId = taskId;
 
       // Update sorted index if in curriculum or contest mode
-      if ((state.curriculumMode || state.contestMode) && state.sortedOrder.length > 0) {
+      if (state.orderMode !== 'normal' && state.sortedOrder.length > 0) {
         const index = state.sortedOrder.indexOf(taskId);
         if (index >= 0) {
           state.sortedIndex = index;
@@ -1035,7 +1039,7 @@
   
   // Task navigation buttons
   els.prevTask.addEventListener('click', async () => {
-    if ((state.curriculumMode || state.contestMode) && state.sortedOrder.length > 0) {
+    if (state.orderMode !== 'normal' && state.sortedOrder.length > 0) {
       // Navigate in sorted order (curriculum or contest)
       if (state.sortedIndex > 0) {
         state.sortedIndex--;
@@ -1049,7 +1053,7 @@
   });
 
   els.nextTask.addEventListener('click', async () => {
-    if ((state.curriculumMode || state.contestMode) && state.sortedOrder.length > 0) {
+    if (state.orderMode !== 'normal' && state.sortedOrder.length > 0) {
       // Navigate in sorted order (curriculum or contest)
       if (state.sortedIndex < state.sortedOrder.length - 1) {
         state.sortedIndex++;
@@ -1226,14 +1230,39 @@
     }
   }
   
+  // ==== Modal Controls ====
+  function showTestModal() {
+    els.testModal.classList.add('active');
+    els.progressBar.classList.add('active');
+    els.resSec.style.display = 'none';
+    els.failuresSection.style.display = 'none';
+  }
+
+  function hideTestModal() {
+    els.testModal.classList.remove('active');
+  }
+
+  // Close modal on backdrop click
+  els.testModal.addEventListener('click', (e) => {
+    if (e.target === els.testModal) hideTestModal();
+  });
+
+  // Close modal on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && els.testModal.classList.contains('active')) {
+      hideTestModal();
+    }
+  });
+
+  // Close button
+  els.modalClose.addEventListener('click', hideTestModal);
+
   async function runAll(){
     await ensurePy();
     clearLog();
 
-    // Show progress bar
-    els.progressBar.classList.add('active');
-    els.resSec.style.display = 'none';
-    els.failuresSection.style.display = 'none';
+    // Show modal with progress bar
+    showTestModal();
 
     const summary=[], fails=[];
     let stopTesting = false;
@@ -1385,8 +1414,7 @@
   // Buttons
   els.runOne.addEventListener('click',runSelected);
   els.runAll.addEventListener('click',runAll);
-  els.curriculumToggle.addEventListener('click', toggleCurriculumMode);
-  els.contestToggle.addEventListener('click', toggleContestMode);
+  els.orderModeToggle.addEventListener('click', cycleOrderMode);
 
   function updateCodeStats(){ 
     const src = editor ? editor.getValue() : currentCode;
@@ -1404,9 +1432,6 @@
     // Load available code packs and get the latest private pack
     const latestPack = await loadAvailableCodePacks();
 
-    // Load first task
-    await loadTaskFromFile(1);
-
     // Load the latest private pack if available, otherwise try jaziv-63-594
     if (latestPack) {
       els.codePack.value = latestPack;
@@ -1414,6 +1439,22 @@
     } else if (els.codePack.querySelector('option[value="public/jaziv-63-594"]')) {
       els.codePack.value = 'public/jaziv-63-594';
       await loadCodePack('public/jaziv-63-594');
+    }
+
+    // If code pack was loaded, build sorted order for contest mode and load first task
+    if (state.codePackFiles && Object.keys(state.codePackFiles).length > 0) {
+      buildSortedOrder(true); // Contest order (longest first)
+      if (state.sortedOrder.length > 0) {
+        await loadTaskFromFile(state.sortedOrder[0]);
+      } else {
+        await loadTaskFromFile(1);
+      }
+    } else {
+      // No code pack, just load task 1 in normal mode
+      state.orderMode = 'normal';
+      els.orderModeLabel.textContent = 'Task Order';
+      els.mainTitle.innerHTML = 'ARC-GEN';
+      await loadTaskFromFile(1);
     }
   });
   </script>
