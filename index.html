@@ -67,16 +67,21 @@
     
     /* Editor toolbar */
     .editor-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--stroke)}
-    .byte-count-display{display:flex;gap:20px;align-items:center}
-    .current-bytes{display:flex;align-items:baseline;gap:6px;min-width:120px}
-    .byte-value{font-size:24px;font-weight:700;color:#ffffff;min-width:60px;text-align:right}
-    .byte-label{font-size:14px;color:var(--muted)}
-    .best-bytes{display:flex;align-items:baseline;gap:6px;min-width:100px}
-    .best-label{font-size:14px;color:var(--muted)}
-    .best-value{font-size:18px;font-weight:600;color:#00ff88;min-width:40px;text-align:right}
-    .byte-delta{font-size:20px;font-weight:700;padding:2px 8px;border-radius:6px;min-width:120px;text-align:center}
-    .byte-delta.better{color:#22c55e;background:rgba(34,197,94,0.1)}
-    .byte-delta.worse{color:#ef4444;background:rgba(239,68,68,0.1)}
+    .byte-count-display{display:flex;gap:12px;align-items:center;font-size:14px}
+    .metric-item{display:flex;align-items:baseline;gap:4px}
+    .metric-label{color:var(--muted);font-weight:500}
+    .metric-value{font-size:18px;font-weight:700;color:#ffffff}
+    .metric-value.raw{color:#3b82f6}
+    .metric-value.sub{color:#eab308}
+    .metric-value.sub-optimal{color:#22c55e}
+    .metric-value.lb{color:#22c55e}
+    .metric-unit{font-size:12px;color:var(--muted)}
+    .metric-separator{color:var(--muted);font-size:16px}
+    .comp-indicator{font-size:11px;color:var(--muted);font-style:italic;margin-left:2px}
+    .metric-gap{font-size:18px;font-weight:700;padding:2px 8px;border-radius:4px}
+    .metric-gap.better{color:#22c55e;background:rgba(34,197,94,0.1)}
+    .metric-gap.worse{color:#ef4444;background:rgba(239,68,68,0.1)}
+    .metric-gap.optimal{color:#22c55e;background:rgba(34,197,94,0.1)}
     .play-button{background:#2563eb;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:18px;cursor:pointer;transition:all .2s}
     .play-button:hover{background:#1d4ed8;transform:scale(1.05)}
     .test-result{font-size:16px;font-weight:700;padding:4px 12px;border-radius:6px}
@@ -189,15 +194,27 @@
           <!-- Editor Toolbar -->
           <div class="editor-toolbar">
             <div class="byte-count-display">
-              <div class="current-bytes">
-                <span id="bytes" class="byte-value">0</span>
-                <span class="byte-label">bytes</span>
+              <div class="metric-item">
+                <span class="metric-label">Raw:</span>
+                <span id="rawBytes" class="metric-value raw">0</span>
+                <span class="metric-unit">bytes</span>
               </div>
-              <div class="best-bytes">
-                <span class="best-label">LB Best:</span>
-                <span id="bestBytes" class="best-value">--</span>
+              <div class="metric-separator">|</div>
+              <div class="metric-item">
+                <span class="metric-label">Sub:</span>
+                <span id="subBytes" class="metric-value sub">0</span>
+                <span id="compIndicator" class="comp-indicator"></span>
               </div>
-              <div id="byteDelta" class="byte-delta"></div>
+              <div class="metric-separator">|</div>
+              <div class="metric-item">
+                <span class="metric-label">LB:</span>
+                <span id="lbBytes" class="metric-value lb">--</span>
+              </div>
+              <div class="metric-separator">|</div>
+              <div class="metric-item">
+                <span class="metric-label">Gap:</span>
+                <span id="gapBytes" class="metric-gap">--</span>
+              </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
               <button id="runOne" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Test current example</button>
@@ -356,7 +373,10 @@
 
   <!-- Load JSZip for handling code packs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  
+
+  <!-- Load Pako for zlib compression -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+
   <!-- Load Pyodide -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
   
@@ -375,7 +395,8 @@
     exampleInfo:E('exampleInfo'),
     runOne:E('runOne'),runAll:E('runAll'),
     inCanvas:E('inCanvas'),exCanvas:E('exCanvas'),acCanvas:E('acCanvas'),
-    bytes:E('bytes'),
+    rawBytes:E('rawBytes'),subBytes:E('subBytes'),lbBytes:E('lbBytes'),gapBytes:E('gapBytes'),
+    compIndicator:E('compIndicator'),
     summaryChips:E('summaryChips'),failBody:E('failBody'),log:E('log'),
     progressBar:E('progressBar'),resSec:E('resSec'),testMessage:E('testMessage'),
     failuresSection:E('failuresSection'),failureViz:E('failureViz'),failureTitle:E('failureTitle'),
@@ -383,7 +404,6 @@
     taskInput:E('taskInput'),codePack:E('codePack'),
     prevTask:E('prevTask'),nextTask:E('nextTask'),prevEx:E('prevEx'),nextEx:E('nextEx'),
     taskTitle:E('taskTitle'),taskHash:E('taskHash'),exampleResult:E('exampleResult'),
-    bestBytes:E('bestBytes'),byteDelta:E('byteDelta'),
     gridSizeSlider:E('gridSizeSlider'),gridSizeValue:E('gridSizeValue'),
     orderModeLabel:E('orderModeLabel'),orderModeToggle:E('orderModeToggle'),mainTitle:E('mainTitle'),
     testModal:E('testModal'),modalClose:E('modalClose')
@@ -535,7 +555,7 @@
   }
   
   // ==== State ====
-  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},orderMode:'contest',sortedOrder:[],sortedIndex:0};
+  const state={sets:{},order:[],curSet:'train',curId:0,results:{},fileName:null,currentTaskId:0,currentCodePack:null,codePackFiles:{},taskTitles:{},bestBytes:{},orderMode:'contest',sortedOrder:[],sortedIndex:0,rawBytes:0,compressedBytes:0,submissionBytes:0};
   const setStatus=s=>els.status.textContent=s;
   const log=m=>{ els.log.textContent+=m+'\n'; els.log.scrollTop=els.log.scrollHeight; };
   const clearLog=()=>els.log.textContent='';
@@ -570,7 +590,7 @@
   // Update task info display
   function updateTaskInfo(taskId) {
     const paddedId = String(taskId).padStart(3, '0');
-    
+
     // Update title and hash
     if (state.taskTitles[paddedId]) {
       const info = state.taskTitles[paddedId];
@@ -580,39 +600,83 @@
       els.taskTitle.textContent = `Task ${taskId}`;
       els.taskHash.textContent = '';
     }
-    
-    // Update best bytes
-    if (state.bestBytes[paddedId]) {
-      els.bestBytes.textContent = state.bestBytes[paddedId];
-      updateByteDelta();
-    } else {
-      els.bestBytes.textContent = '--';
-      els.byteDelta.textContent = '';
-      els.byteDelta.className = 'byte-delta';
-    }
-  }
-  
-  // Update byte count delta
-  function updateByteDelta() {
-    const currentBytes = parseInt(els.bytes.textContent) || 0;
-    const paddedId = String(state.currentTaskId).padStart(3, '0');
-    const bestBytes = state.bestBytes[paddedId];
 
-    if (bestBytes && currentBytes > 0) {
-      const delta = currentBytes - bestBytes;
-      if (delta === 0) {
-        els.byteDelta.textContent = '✓ Optimal';
-        els.byteDelta.className = 'byte-delta better';
-      } else if (delta > 0) {
-        els.byteDelta.textContent = `+${delta}`;
-        els.byteDelta.className = 'byte-delta worse';
+    // Update leaderboard best bytes display
+    if (state.bestBytes[paddedId]) {
+      els.lbBytes.textContent = state.bestBytes[paddedId];
+    } else {
+      els.lbBytes.textContent = '--';
+    }
+
+    // Initial byte display (will be updated when code is tested)
+    updateByteDisplay();
+  }
+
+  // Calculate submission bytes (raw vs compressed)
+  function calculateSubmissionBytes(source) {
+    if (!source || source.trim() === '') {
+      state.rawBytes = 0;
+      state.compressedBytes = 0;
+      state.submissionBytes = 0;
+      return;
+    }
+
+    // Calculate raw bytes
+    state.rawBytes = new TextEncoder().encode(source).length;
+
+    // Calculate compressed bytes
+    try {
+      state.compressedBytes = leaderboardCompressedLength(source);
+    } catch (error) {
+      console.error('Compression error:', error);
+      state.compressedBytes = state.rawBytes; // fallback to raw
+    }
+
+    // Submission bytes is the minimum of raw and compressed
+    state.submissionBytes = Math.min(state.rawBytes, state.compressedBytes);
+  }
+
+  // Update byte count display
+  function updateByteDisplay() {
+    // Update raw bytes
+    els.rawBytes.textContent = state.rawBytes;
+
+    // Update submission bytes
+    els.subBytes.textContent = state.submissionBytes;
+
+    // Show "(comp)" indicator only if compressed is shorter
+    if (state.compressedBytes < state.rawBytes && state.submissionBytes > 0) {
+      els.compIndicator.textContent = '(comp)';
+    } else {
+      els.compIndicator.textContent = '';
+    }
+
+    // Update gap and submission color
+    const paddedId = String(state.currentTaskId).padStart(3, '0');
+    const lbBest = state.bestBytes[paddedId];
+
+    if (lbBest && state.submissionBytes > 0) {
+      const gap = state.submissionBytes - lbBest;
+
+      // Change submission color to green if it matches leaderboard best
+      if (gap === 0) {
+        els.subBytes.className = 'metric-value sub-optimal';
+        els.gapBytes.textContent = '✓ Optimal';
+        els.gapBytes.className = 'metric-gap optimal';
       } else {
-        els.byteDelta.textContent = `${delta}`;
-        els.byteDelta.className = 'byte-delta better';
+        els.subBytes.className = 'metric-value sub';
+        if (gap > 0) {
+          els.gapBytes.textContent = `+${gap}`;
+          els.gapBytes.className = 'metric-gap worse';
+        } else {
+          els.gapBytes.textContent = `${gap}`;
+          els.gapBytes.className = 'metric-gap better';
+        }
       }
     } else {
-      els.byteDelta.textContent = '';
-      els.byteDelta.className = 'byte-delta';
+      els.subBytes.className = 'metric-value sub';
+      els.gapBytes.textContent = '--';
+      els.gapBytes.className = 'metric-gap';
     }
   }
 
@@ -756,12 +820,6 @@
       state.currentCodePack = packName;
       // Don't show status for code pack loading
 
-      // Rebuild sorted order if in curriculum or contest mode
-      if (state.orderMode === 'curriculum') {
-        buildSortedOrder(false);
-      } else if (state.orderMode === 'contest') {
-        buildSortedOrder(true);
-      }
       console.log(`Code pack ${packName} loaded with ${fileCount} files`);
 
       // Load code for current task if available (includes auto-run)
@@ -803,35 +861,32 @@
 
   // Sorted mode functions (curriculum/contest)
   function buildSortedOrder(reverse = false) {
-    if (!state.codePackFiles || Object.keys(state.codePackFiles).length === 0) {
+    // Use leaderboard bytes for sorting - no code pack required
+    if (!state.bestBytes || Object.keys(state.bestBytes).length === 0) {
       return false;
     }
 
-    // Create array of tasks with their code lengths
-    const tasksWithLengths = [];
-    for (const [fileName, code] of Object.entries(state.codePackFiles)) {
-      const match = fileName.match(/task(\d{3})\.py/);
-      if (match) {
-        const taskId = parseInt(match[1]);
-        tasksWithLengths.push({
-          taskId: taskId,
-          length: code.length,
-          fileName: fileName
-        });
-      }
+    // Create array of tasks with their leaderboard bytes
+    const tasksWithBytes = [];
+    for (const [paddedId, bytes] of Object.entries(state.bestBytes)) {
+      const taskId = parseInt(paddedId);
+      tasksWithBytes.push({
+        taskId: taskId,
+        bytes: bytes
+      });
     }
 
-    // Sort by code length
+    // Sort by leaderboard bytes
     if (reverse) {
-      // Contest mode: longest first (descending)
-      tasksWithLengths.sort((a, b) => b.length - a.length);
+      // Contest mode: longest first (descending) - hardest to golf
+      tasksWithBytes.sort((a, b) => b.bytes - a.bytes);
     } else {
-      // Curriculum mode: shortest first (ascending)
-      tasksWithLengths.sort((a, b) => a.length - b.length);
+      // Curriculum mode: shortest first (ascending) - easiest to golf
+      tasksWithBytes.sort((a, b) => a.bytes - b.bytes);
     }
 
     // Store the sorted order
-    state.sortedOrder = tasksWithLengths.map(t => t.taskId);
+    state.sortedOrder = tasksWithBytes.map(t => t.taskId);
 
     return true;
   }
@@ -843,11 +898,11 @@
     const nextIdx = (currentIdx + 1) % modes.length;
     const nextMode = modes[nextIdx];
 
-    // If switching to sorted mode, need code pack
+    // If switching to sorted mode, need leaderboard data
     if (nextMode !== 'normal') {
       const reverse = nextMode === 'contest';
       if (!buildSortedOrder(reverse)) {
-        alert('Please load a code pack first to use sorted order modes.');
+        alert('Leaderboard data not loaded. Cannot use sorted order modes.');
         return;
       }
     }
@@ -1155,7 +1210,83 @@
       await runSelected();
     }
   }
-  
+
+  // ==== Compression utilities ====
+  function leaderboardCompressedLength(source) {
+    /**
+     * Mirror the leaderboard compressor to ensure byte counts match.
+     * This replicates the Python compression algorithm used by the leaderboard.
+     */
+    const data = new TextEncoder().encode(source);
+
+    function sanitize(blob) {
+      const out = [];
+      for (let i = 0; i < blob.length; i++) {
+        const b = blob[i];
+        if (b === 0) {
+          out.push(92, 120, 48, 48); // \x00
+        } else if (b === 13) {
+          out.push(92, 114); // \r
+        } else if (b === 92) {
+          out.push(92, 92); // \\
+        } else {
+          out.push(b);
+        }
+      }
+      return new Uint8Array(out);
+    }
+
+    function escapeForDelim(blob, delim) {
+      let s = [];
+      for (let i = 0; i < blob.length; i++) {
+        const b = blob[i];
+        if (b === 10) { // \n
+          s.push(92, 110); // \n -> \\n
+        } else if (delim === 39 && b === 39) { // single quote
+          s.push(92, 39); // ' -> \'
+        } else if (delim === 34 && b === 34) { // double quote
+          s.push(92, 34); // " -> \"
+        } else {
+          s.push(b);
+        }
+      }
+      return new Uint8Array(s);
+    }
+
+    let best = null;
+
+    // Try with and without trailing newline
+    for (const trailing of ['', '\n']) {
+      let src = new Uint8Array([...data, ...new TextEncoder().encode(trailing)]);
+      let compressed = pako.deflate(src, { level: 9 });
+
+      // Handle trailing quotes (byte value 34 is double quote)
+      while (compressed.length > 0 && compressed[compressed.length - 1] === 34) {
+        src = new Uint8Array([...src, 35]); // append '#'
+        compressed = pako.deflate(src, { level: 9 });
+      }
+
+      const base = sanitize(compressed);
+
+      // Try both single and double quote delimiters
+      for (const delim of [39, 34]) { // 39 = ', 34 = "
+        const payload = escapeForDelim(base, delim);
+
+        // Build wrapper: #coding:L1\nimport zlib\nexec(zlib.decompress(bytes('...', "L1")))
+        const delimChar = delim === 39 ? "'" : '"';
+        const payloadStr = new TextDecoder('latin1').decode(payload);
+        const wrapper = `#coding:L1\nimport zlib\nexec(zlib.decompress(bytes(${delimChar}${payloadStr}${delimChar}, "L1")))`;
+        const size = new TextEncoder().encode(wrapper).length;
+
+        if (best === null || size < best) {
+          best = size;
+        }
+      }
+    }
+
+    return best !== null ? best : pako.deflate(data, { level: 9 }).length;
+  }
+
   // ==== Run solver ====
   function deepEq(a,b){ 
     if(!a||!b||a.length!==b.length) return false; 
@@ -1170,10 +1301,15 @@
   }
   
   async function runOne(setName, idx){
-    await ensurePy(); 
-    const ex=state.sets[setName][idx]; 
+    await ensurePy();
+    const ex=state.sets[setName][idx];
     let out,pyIn,pyOut;
     const codeToRun = editor ? editor.getValue() : currentCode;
+
+    // Calculate and display compression metrics before running
+    calculateSubmissionBytes(codeToRun);
+    updateByteDisplay();
+
     try{ 
       await pyodide.runPythonAsync(codeToRun); 
       pyIn=pyodide.toPy(ex.input); 
@@ -1260,6 +1396,11 @@
   async function runAll(){
     await ensurePy();
     clearLog();
+
+    // Calculate and display compression metrics before running full test
+    const codeToRun = editor ? editor.getValue() : currentCode;
+    calculateSubmissionBytes(codeToRun);
+    updateByteDisplay();
 
     // Show modal with progress bar
     showTestModal();
@@ -1416,11 +1557,11 @@
   els.runAll.addEventListener('click',runAll);
   els.orderModeToggle.addEventListener('click', cycleOrderMode);
 
-  function updateCodeStats(){ 
+  function updateCodeStats(){
     const src = editor ? editor.getValue() : currentCode;
-    const bytes=(new TextEncoder()).encode(src).length; 
-    els.bytes.textContent=bytes; 
-    updateByteDelta();
+    // Just update raw bytes count for display (compression happens on test)
+    state.rawBytes = (new TextEncoder()).encode(src).length;
+    els.rawBytes.textContent = state.rawBytes;
   }
   
   
@@ -1441,8 +1582,8 @@
       await loadCodePack('public/jaziv-63-594');
     }
 
-    // If code pack was loaded, build sorted order for contest mode and load first task
-    if (state.codePackFiles && Object.keys(state.codePackFiles).length > 0) {
+    // If leaderboard data was loaded, build sorted order for contest mode and load first task
+    if (state.bestBytes && Object.keys(state.bestBytes).length > 0) {
       buildSortedOrder(true); // Contest order (longest first)
       if (state.sortedOrder.length > 0) {
         await loadTaskFromFile(state.sortedOrder[0]);
@@ -1450,7 +1591,7 @@
         await loadTaskFromFile(1);
       }
     } else {
-      // No code pack, just load task 1 in normal mode
+      // No leaderboard data, just load task 1 in normal mode
       state.orderMode = 'normal';
       els.orderModeLabel.textContent = 'Task Order';
       els.mainTitle.innerHTML = 'ARC-GEN';
