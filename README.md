@@ -2,7 +2,7 @@
 
 A simple, yet useful browser-based development environment for solving and testing ARC (Abstraction and Reasoning Corpus) puzzles with Python. Features a modern interface with Monaco editor, real-time testing, and gamification elements.
 
-![ARC-AGI Workbench](https://img.shields.io/badge/version-1.0-blue.svg)
+![ARC-AGI Workbench](https://img.shields.io/badge/version-3.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -20,13 +20,24 @@ A simple, yet useful browser-based development environment for solving and testi
 - **Python Execution**: Browser-based Python runtime using Pyodide
 
 ### Advanced Features
-- **🎓 Curriculum Mode**: Learn progressively from simpler to complex solutions (shortest code first)
-- **🏆 Contest Order**: Tackle hardest problems first (longest code first)
+- **🗜️ Compression Metrics**: See raw bytes, submission bytes (with compression), leaderboard best, and gap
+  - Color-coded display: Blue (raw), Yellow (submission), Green (leaderboard/optimal)
+  - Automatic compression calculation mirrors leaderboard algorithm
+  - Instant feedback on compression benefits
+- **🎓 Curriculum Mode**: Learn progressively from easier to harder problems (sorted by leaderboard bytes)
+- **🏆 Contest Order**: Tackle hardest problems first (sorted by leaderboard bytes, longest first)
 - **📦 Code Pack System**: Load and manage solution sets
 - **🎯 Gamification**: Track your progress against leaderboard best scores
 - **⚡ Fast Testing**: Stop-on-failure mode for efficient debugging
 
 ## 🎯 Quick Start
+
+### Option 1: GitHub Pages (Zero Setup!)
+Visit: **https://ravi-annaswamy.github.io/arc-workbench/**
+
+No installation, no local server needed - just open and code!
+
+### Option 2: Local Setup
 
 1. **Clone the repository**
 ```bash
@@ -86,15 +97,17 @@ The workbench offers three task ordering modes that you can cycle through using 
 - Default mode on startup
 
 **Curriculum Order**:
-- Sort tasks by solution complexity (code length, shortest first)
-- Progress from easier to harder problems
+- Sort tasks by leaderboard best bytes (shortest first)
+- Progress from easier to harder problems to golf
 - Build understanding incrementally
+- Works automatically with leaderboard winner's bytes as goals (no code pack required)
 - Perfect for learning and progressive mastery
 
 **Contest Order**:
-- Sort tasks by solution complexity (code length, longest first)
-- Start with the most challenging problems
+- Sort tasks by leaderboard best bytes (longest first)
+- Start with the most challenging problems to optimize
 - Ideal for tackling hard problems first or reviewing complex solutions
+- Based on community-validated difficulty
 
 Click the arrow button (▶) next to the mode label in the header to cycle through these modes.
 
@@ -104,13 +117,22 @@ Click the arrow button (▶) next to the mode label in the header to cycle throu
 The interface uses a **portrait mode layout** for optimal code editing and grid visualization:
 
 - **Header**: Mode switcher (Task Order/Curriculum/Contest) and workbench title
-- **Left Panel (62%)**: Monaco editor with code pack selector, byte counter, and test buttons
+- **Left Panel (62%)**: Monaco editor with code pack selector, compression metrics display (Raw/Sub/LB/Gap), and test buttons
 - **Right Panel (38%)**:
   - Task information (title, hash, navigation)
   - Grid size control and example picker (Group/Example selectors)
   - Grid visualizations (Input, Expected, Predicted) stacked vertically
   - PASS/FAIL indicators next to Predicted grid label
 - **Test Results Modal**: Appears as overlay when running full test suite with progress tracking and failure details
+
+### Byte Metrics Display
+The byte counter shows four key metrics:
+- **Raw**: Your uncompressed source code size (blue)
+- **Sub**: Submission bytes - shorter of raw or compressed (yellow, turns green when optimal)
+- **LB**: Leaderboard best solution (green)
+- **Gap**: Difference from leaderboard best (green when ≤0, red when >0)
+
+The `(comp)` indicator appears when compression provides a benefit.
 
 ### Grid Colors
 - 0: Black
@@ -170,6 +192,7 @@ arc-workbench/
 - **Pyodide v0.24.1**: Python runtime in browser
 - **Monaco Editor v0.45.0**: Code editing
 - **JSZip v3.10.1**: ZIP file handling
+- **Pako v2.1.0**: Zlib compression for submission byte calculation
 
 ### Browser Requirements
 - Modern browser with JavaScript enabled
@@ -208,9 +231,10 @@ This workbench was created to keep track of my work and I wanted to share it so 
 
 ## 📊 Performance Tips
 
-- **Curriculum Mode**: Learn progressively from simplest to most complex solutions
-- **Contest Order**: Focus on hardest problems first or review complex patterns
-- **Byte Counter**: Watch real-time feedback to optimize solution length
+- **Curriculum Mode**: Learn progressively from easiest to hardest problems to golf (leaderboard-based)
+- **Contest Order**: Focus on hardest problems first or review complex patterns (leaderboard-based)
+- **Compression Metrics**: Watch the Sub vs Raw comparison to see if compression helps your solution
+- **Byte Counter**: Monitor the Gap metric to track distance from leaderboard best
 - **Stop-on-Failure**: Enable fast debugging by halting at first failed test
 - **Quick Testing**: Use "Test current example" for rapid iteration
 
